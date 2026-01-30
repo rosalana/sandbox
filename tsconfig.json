@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "composite": false,
+    "declaration": true,
+    "declarationDir": "dist",
+    "emitDeclarationOnly": true,
+    "strict": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "target": "ESNext",
+    "lib": ["ESNext", "DOM"],
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "baseUrl": "."
+  },
+  "include": ["src"]
+}

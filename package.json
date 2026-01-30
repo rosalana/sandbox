@@ -1,0 +1,46 @@
+{
+  "name": "@rosalana/sandbox",
+  "version": "0.0.1",
+  "description": "Lightweight WebGL wrapper for simple, beautiful shader effects",
+  "keywords": [
+    "webgl",
+    "shader",
+    "glsl",
+    "canvas",
+    "graphics",
+    "animation",
+    "fragment-shader",
+    "webgl2",
+    "gpu",
+    "effects"
+  ],
+  "private": false,
+  "type": "module",
+  "main": "./dist/index.cjs.js",
+  "module": "./dist/index.es.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.cjs.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev:vite": "vite build --watch",
+    "dev:tsc": "tsc --declaration --emitDeclarationOnly --watch",
+    "typecheck": "tsc --noEmit",
+    "dev": "npm run build -- --watch",
+    "build": "vite build && tsc --declaration --emitDeclarationOnly",
+    "clean": "rm -rf dist"
+  },
+  "author": "michaelbany <mobany526@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vite": "^5.2.0"
+  }
+}
