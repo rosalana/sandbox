@@ -37,6 +37,14 @@
     "build": "vite build && tsc --declaration --emitDeclarationOnly",
     "clean": "rm -rf dist"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rosalana/sandbox.git"
+  },
+  "homepage": "https://github.com/rosalana/sandbox#readme",
+  "bugs": {
+    "url": "https://github.com/rosalana/sandbox/issues"
+  },
   "author": "michaelbany <mobany526@gmail.com>",
   "license": "MIT",
   "devDependencies": {
