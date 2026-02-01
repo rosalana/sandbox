@@ -1,16 +1,28 @@
 [![Rosalana](https://raw.githubusercontent.com/rosalana/.github/main/Sandbox_Banner.png)](https://github.com/rosalana)
 
+<div align="center">
+
+[![npm version](https://img.shields.io/npm/v/@rosalana/sandbox?style=flat&colorA=18181B&colorB=28CF8D)](https://www.npmjs.com/package/@rosalana/sandbox)
+[![npm downloads](https://img.shields.io/npm/dm/@rosalana/sandbox?style=flat&colorA=18181B&colorB=28CF8D)](https://www.npmjs.com/package/@rosalana/sandbox)
+[![GitHub stars](https://img.shields.io/github/stars/rosalana/sandbox?style=flat&colorA=18181B&colorB=28CF8D)](https://github.com/rosalana/sandbox/stargazers)
+[![License](https://img.shields.io/npm/l/@rosalana/sandbox?style=flat&colorA=18181B&colorB=28CF8D)](https://github.com/rosalana/sandbox/blob/master/LICENCE)
+
+[![Open in CodeSandbox](https://img.shields.io/badge/Open%20in-CodeSandbox-28CF8D?style=for-the-badge&logo=codesandbox&logoColor=white&colorA=18181B)](https://codesandbox.io/p/sandbox/nervous-greider-76wsrk)
+[![Report Issue](https://img.shields.io/badge/Report-Issue-FF6B6B?style=for-the-badge&logo=github&logoColor=white&colorA=18181B)](https://github.com/rosalana/sandbox/issues)
+
+</div>
+
 **Rosalana Sandbox** is a lightweight WebGL wrapper for **simple, beautiful shader effects**. It focuses on a clean API, type safety, and fast setup so you can go from idea to a shader in minutes.
 
 It's **DX‑friendly**, small, and intentionally minimal — perfect for gradients, ambient backgrounds, and animated GLSL experiments. If you're not building a full 3D engine, Sandbox is a delightful alternative to larger libraries like three.js or p5.js.
 
 ### Bundle size comparison
 
-| Library       | Minified | Gzipped  |
-| ------------- | -------- | -------- |
-| **Sandbox**   | 31 KB    | **8 KB** |
-| three.js      | 694 KB   | 175 KB   |
-| p5.js         | 1.1 MB   | 351 KB   |
+| Library     | Minified | Gzipped  |
+| ----------- | -------- | -------- |
+| **Sandbox** | 31 KB    | **8 KB** |
+| three.js    | 694 KB   | 175 KB   |
+| p5.js       | 1.1 MB   | 351 KB   |
 
 Sandbox is **~22x smaller** than three.js and **~44x smaller** than p5.js.
 
@@ -325,20 +337,20 @@ interface SandboxOptions {
 }
 ```
 
-| Option                  | Default       | Description                     |
-| ----------------------- | ------------- | ------------------------------- |
-| `vertex`                | built-in      | Custom vertex shader            |
-| `fragment`              | built-in      | Fragment shader                 |
-| `autoplay`              | `true`        | Start rendering immediately     |
-| `pauseWhenHidden`       | `true`        | Pause when scrolled out of view |
-| `dpr`                   | `"auto"`      | Device pixel ratio              |
-| `preserveDrawingBuffer` | `false`       | Keep buffer for screenshots     |
-| `antialias`             | `true`        | Enable antialiasing             |
+| Option                  | Default         | Description                     |
+| ----------------------- | --------------- | ------------------------------- |
+| `vertex`                | built-in        | Custom vertex shader            |
+| `fragment`              | built-in        | Fragment shader                 |
+| `autoplay`              | `true`          | Start rendering immediately     |
+| `pauseWhenHidden`       | `true`          | Pause when scrolled out of view |
+| `dpr`                   | `"auto"`        | Device pixel ratio              |
+| `preserveDrawingBuffer` | `false`         | Keep buffer for screenshots     |
+| `antialias`             | `true`          | Enable antialiasing             |
 | `onError`               | `console.error` | Error callback                  |
-| `onLoad`                | —             | Called when ready               |
-| `onBeforeRender`        | —             | Hook before each frame          |
-| `onAfterRender`         | —             | Hook after each frame           |
-| `uniforms`              | —             | Initial uniform values          |
+| `onLoad`                | —               | Called when ready               |
+| `onBeforeRender`        | —               | Hook before each frame          |
+| `onAfterRender`         | —               | Hook after each frame           |
+| `uniforms`              | —               | Initial uniform values          |
 
 ## Limitations (by design)
 
