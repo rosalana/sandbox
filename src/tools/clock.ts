@@ -33,13 +33,17 @@ export default class Clock {
     this.callback = callback;
     this.running = true;
 
-    // Initialize timing
+    const now = performance.now();
+
     if (this.frame === 0) {
-      const now = performance.now();
+      // Fresh start
       this.startTime = now;
-      this.lastTime = now;
+    } else {
+      // Resume from paused state
+      this.startTime = now - this.time * 1000;
     }
-      
+    this.lastTime = now;
+
     // Start the loop
     this.rafId = requestAnimationFrame(this.loop);
 
@@ -113,7 +117,7 @@ export default class Clock {
    * Cleanup.
    */
   destroy(): void {
-    this.stop();
+    this.reset();
     this.callback = null;
   }
 
