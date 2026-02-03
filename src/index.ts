@@ -138,15 +138,27 @@ export class Sandbox {
       }),
 
       // Visibility check on scroll
-      Listener.on(document, "scroll", () => {
-        if (!this.options.pauseWhenHidden) return;
+      (() => {
+        let pausedByViewport = false;
 
-        if (this.isInViewport()) {
-          this.play();
-        } else {
-          this.pause();
-        }
-      }),
+        return Listener.on(document, "scroll", (event) => {
+          if (!this.options.pauseWhenHidden) return;
+
+          if (this.isInViewport()) {
+            // should be playing if not paused manually
+            if (pausedByViewport && !this.isPlaying()) {
+              this.play();
+              pausedByViewport = false;
+            }
+          } else {
+            // should be paused...
+            if (this.isPlaying()) {
+              this.pause();
+              pausedByViewport = true;
+            }
+          }
+        });
+      })(),
 
       // Mouse tracking
       Listener.on(document, "mousemove", (e) => {
