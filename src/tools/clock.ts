@@ -13,12 +13,13 @@ export default class Clock {
   frame = 0;
   /** Is clock running */
   running = false;
+  /** Smoothed frames per second */
+  fps = 0;
 
   private startTime = 0;
   private lastTime = 0;
   private rafId: number | null = null;
   private callback: HookCallback | null = null;
-  private fps = 0;
 
   constructor() {
     // Bind loop method to preserve 'this' context
@@ -89,7 +90,7 @@ export default class Clock {
       delta: this.delta,
       frame: this.frame,
       running: this.running,
-      fps: this.fps,
+      fps: Math.round(this.fps),
     };
   }
 
