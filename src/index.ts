@@ -60,8 +60,6 @@ export class Sandbox {
     this.setupListeners();
     this.setViewport();
 
-    this.options.onLoad();
-
     if (this.options.autoplay) {
       this.play();
     }

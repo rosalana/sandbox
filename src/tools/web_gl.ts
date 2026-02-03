@@ -211,6 +211,9 @@ export default class WebGL {
       if (webglProgram) {
         this._uniforms.attachProgram(webglProgram);
       }
+
+      // Call onLoad callback after successful shader setup
+      this.options.onLoad();
     } catch (error) {
       if (error instanceof SandboxError) {
         this.options.onError(error);
