@@ -34,10 +34,12 @@ export default class Clock {
     this.running = true;
 
     // Initialize timing
-    const now = performance.now();
-    this.startTime = now;
-    this.lastTime = now;
-
+    if (this.frame === 0) {
+      const now = performance.now();
+      this.startTime = now;
+      this.lastTime = now;
+    }
+      
     // Start the loop
     this.rafId = requestAnimationFrame(this.loop);
 
