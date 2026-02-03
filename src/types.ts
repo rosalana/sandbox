@@ -12,6 +12,8 @@ export interface SandboxOptions {
   pauseWhenHidden?: boolean;
   /** Device pixel ratio - "auto" uses window.devicePixelRatio (default: "auto") */
   dpr?: number | "auto";
+  /** Max Frame rate (default: 0 as unlimited) */
+  fps?: number;
   /** Preserve drawing buffer for screenshots (default: false) */
   preserveDrawingBuffer?: boolean;
   /** Enable antialiasing (default: true) */

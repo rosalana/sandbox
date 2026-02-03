@@ -56,6 +56,11 @@ export default class WebGL {
     this._uniforms = new Uniforms(this.gl);
     this._clock = new Clock();
 
+    // Apply max FPS if specified
+    if (this.options.fps) {
+      this._clock.setMaxFps(this.options.fps);
+    }
+
     if (this.options.onBeforeRender) {
       this.onBeforeHooks.add(this.options.onBeforeRender);
     }
@@ -273,6 +278,13 @@ export default class WebGL {
    */
   getVersion(): WebGLVersion {
     return this._version;
+  }
+
+  /**
+   * Get the clock instance
+   */
+  getClock(): Clock {
+    return this._clock;
   }
 
   /**

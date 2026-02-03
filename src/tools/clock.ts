@@ -20,6 +20,7 @@ export default class Clock {
   private lastTime = 0;
   private rafId: number | null = null;
   private callback: HookCallback | null = null;
+  private maxFps = 0;
 
   constructor() {
     // Bind loop method to preserve 'this' context
@@ -127,10 +128,27 @@ export default class Clock {
   }
 
   /**
+   * Set maximum frames per second.
+   */
+  setMaxFps(fps: number): this {
+    this.maxFps = fps;
+    return this;
+  }
+
+  /**
    * Internal animation frame handler.
    */
   private loop(timestamp: number): void {
     if (!this.running) return;
+
+    // Skip frame if maxFps is set and we haven't reached the minimum frame time
+    if (this.maxFps > 0) {
+      const minFrameTime = 1000 / this.maxFps;
+      if (timestamp - this.lastTime < minFrameTime) {
+        this.rafId = requestAnimationFrame(this.loop);
+        return;
+      }
+    }
 
     // Calculate delta time in seconds
     this.delta = (timestamp - this.lastTime) / 1000;

@@ -94,6 +94,7 @@ export class Sandbox {
       autoplay: true,
       pauseWhenHidden: true,
       dpr: "auto" as "auto",
+      fps: 0,
       preserveDrawingBuffer: false,
       antialias: true,
       onError: (error: SandboxError) => {
@@ -297,6 +298,18 @@ export class Sandbox {
     }
 
     this.engine.shader(this.options.vertex, this.options.fragment);
+    return this;
+  }
+
+  /**
+   * Set the max frame rate runtime
+   * 
+   * @example
+   * sandbox.setFps(30); // Limit to 30 FPS
+   * sandbox.setFps(0);  // Unlimited FPS
+   */
+  setFps(fps: number): this {
+    this.engine.getClock().setMaxFps(fps);
     return this;
   }
 
