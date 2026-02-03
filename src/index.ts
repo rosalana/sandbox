@@ -42,7 +42,7 @@ export class Sandbox {
   /** Active event listeners */
   private listeners: (() => void)[] = [];
   /** HTML canvas element */
-  private canvas: HTMLCanvasElement;
+  private canvasEl: HTMLCanvasElement;
   /** Resolved options */
   private options: ResolvedSandboxOptions;
   /** WebGL engine */
@@ -52,10 +52,10 @@ export class Sandbox {
   private usingCustomVertex = false;
 
   constructor(canvas: HTMLCanvasElement, options?: SandboxOptions) {
-    this.canvas = canvas;
+    this.canvasEl = canvas;
     this.options = this.resolveOptions(options);
 
-    this.engine = WebGL.setup(this.canvas, this.options);
+    this.engine = WebGL.setup(this.canvasEl, this.options);
 
     this.setupListeners();
     this.setViewport();
@@ -138,7 +138,7 @@ export class Sandbox {
       }),
 
       // Canvas resize
-      Listener.on(this.canvas, "resize", () => {
+      Listener.on(this.canvasEl, "resize", () => {
         this.setViewport();
       }),
 
@@ -190,8 +190,8 @@ export class Sandbox {
         ? Math.min(2, window.devicePixelRatio || 1)
         : this.options.dpr;
 
-    const cssW = this.canvas.clientWidth || this.canvas.width || 1;
-    const cssH = this.canvas.clientHeight || this.canvas.height || 1;
+    const cssW = this.canvasEl.clientWidth || this.canvasEl.width || 1;
+    const cssH = this.canvasEl.clientHeight || this.canvasEl.height || 1;
 
     this.engine.viewport(
       0,
@@ -202,7 +202,7 @@ export class Sandbox {
   }
 
   private isInViewport(): boolean {
-    const rect = this.canvas.getBoundingClientRect();
+    const rect = this.canvasEl.getBoundingClientRect();
 
     return (
       rect.bottom >= 0 &&
@@ -214,7 +214,7 @@ export class Sandbox {
   }
 
   private setMouse(x: number, y: number): void {
-    const rect = this.canvas.getBoundingClientRect();
+    const rect = this.canvasEl.getBoundingClientRect();
     const inCanvas =
       x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
 
@@ -403,15 +403,15 @@ export class Sandbox {
   /**
    * Get WebGL version using (1 or 2).
    */
-  webglVersion(): WebGLVersion {
+  get version(): WebGLVersion {
     return this.engine.getVersion();
   }
 
   /**
    * Get canvas element.
    */
-  canvasElement(): HTMLCanvasElement {
-    return this.canvas;
+  get canvas(): HTMLCanvasElement {
+    return this.canvasEl;
   }
 
   /**
