@@ -18,6 +18,7 @@ export default class Clock {
   private lastTime = 0;
   private rafId: number | null = null;
   private callback: HookCallback | null = null;
+  private fps = 0;
 
   constructor() {
     // Bind loop method to preserve 'this' context
@@ -75,6 +76,7 @@ export default class Clock {
     this.time = 0;
     this.delta = 0;
     this.frame = 0;
+    this.fps = 0;
     return this;
   }
 
@@ -86,6 +88,8 @@ export default class Clock {
       time: this.time,
       delta: this.delta,
       frame: this.frame,
+      running: this.running,
+      fps: this.fps,
     };
   }
 
@@ -130,6 +134,10 @@ export default class Clock {
     // Calculate delta time in seconds
     this.delta = (timestamp - this.lastTime) / 1000;
     this.lastTime = timestamp;
+
+    // Smoothed FPS (exponential moving average)
+    const instantFps = this.delta > 0 ? 1 / this.delta : 0;
+    this.fps = this.fps * 0.95 + instantFps * 0.05;
 
     // Calculate total elapsed time in seconds
     this.time = (timestamp - this.startTime) / 1000;

@@ -124,6 +124,10 @@ export interface ClockState {
   delta: number;
   /** Frame counter */
   frame: number;
+  /** Is the clock currently running */
+  running: boolean;
+  /** Frame rate in frames per second */
+  fps: number;
 }
 
 /** Internal uniform entry for caching */
