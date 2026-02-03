@@ -146,7 +146,7 @@ Sandbox figures out which WebGL version you're using by looking at your shader c
 If WebGL2 isn't available, Sandbox falls back to WebGL1 automatically. You can always check what you're running:
 
 ```ts
-sandbox.webglVersion();
+sandbox.version; // 1 or 2
 ```
 
 ## Uniforms
@@ -194,6 +194,8 @@ These uniforms are filled automatically every frame — no setup needed. Just de
 ## Hooks
 
 Hooks are one of the most powerful features in Sandbox. They let you run logic every frame — before or after render — which opens up a world of possibilities.
+
+The callback receives a `ClockState` object with `time`, `delta`, `frame`, `running`, and `fps` (smoothed).
 
 **Pre-compute values on the CPU** before they hit the shader:
 
@@ -327,6 +329,7 @@ interface SandboxOptions {
   autoplay?: boolean;
   pauseWhenHidden?: boolean;
   dpr?: number | "auto";
+  fps?: number;
   preserveDrawingBuffer?: boolean;
   antialias?: boolean;
   onError?: (error: SandboxError) => void;
@@ -337,20 +340,21 @@ interface SandboxOptions {
 }
 ```
 
-| Option                  | Default         | Description                     |
-| ----------------------- | --------------- | ------------------------------- |
-| `vertex`                | built-in        | Custom vertex shader            |
-| `fragment`              | built-in        | Fragment shader                 |
-| `autoplay`              | `true`          | Start rendering immediately     |
-| `pauseWhenHidden`       | `true`          | Pause when scrolled out of view |
-| `dpr`                   | `"auto"`        | Device pixel ratio              |
-| `preserveDrawingBuffer` | `false`         | Keep buffer for screenshots     |
-| `antialias`             | `true`          | Enable antialiasing             |
-| `onError`               | `console.error` | Error callback                  |
-| `onLoad`                | —               | Called when ready               |
-| `onBeforeRender`        | —               | Hook before each frame          |
-| `onAfterRender`         | —               | Hook after each frame           |
-| `uniforms`              | —               | Initial uniform values          |
+| Option                  | Default         | Description                                    |
+| ----------------------- | --------------- | ---------------------------------------------- |
+| `vertex`                | built-in        | Custom vertex shader                           |
+| `fragment`              | built-in        | Fragment shader                                |
+| `autoplay`              | `true`          | Start rendering immediately                    |
+| `pauseWhenHidden`       | `true`          | Pause when scrolled out of view                |
+| `dpr`                   | `"auto"`        | Device pixel ratio                             |
+| `fps`                   | `0` (unlimited) | Max frame rate (approximate due to rAF timing) |
+| `preserveDrawingBuffer` | `false`         | Keep buffer for screenshots                    |
+| `antialias`             | `true`          | Enable antialiasing                            |
+| `onError`               | `console.error` | Error callback                                 |
+| `onLoad`                | —               | Called on each shader compilation              |
+| `onBeforeRender`        | —               | Hook before each frame                         |
+| `onAfterRender`         | —               | Hook after each frame                          |
+| `uniforms`              | —               | Initial uniform values                         |
 
 ## Limitations (by design)
 
