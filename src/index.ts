@@ -48,6 +48,9 @@ export class Sandbox {
   /** WebGL engine */
   private engine: WebGL;
 
+  /** User sets custom vertex shader */
+  private usingCustomVertex = false;
+
   constructor(canvas: HTMLCanvasElement, options?: SandboxOptions) {
     this.canvas = canvas;
     this.options = this.resolveOptions(options);
@@ -107,6 +110,8 @@ export class Sandbox {
       onAfterRender: null,
       uniforms: {},
     };
+
+    if (options?.vertex) this.usingCustomVertex = true;
 
     // If only vertex is provided, set matching fragment
     if (options?.vertex && !options?.fragment) {
@@ -262,7 +267,14 @@ export class Sandbox {
    * sandbox.setShader(vertexSource, fragmentSource);
    */
   setShader(vertex: string, fragment: string): this {
-    this.engine.shader(vertex, fragment);
+    // Update options
+    this.options.vertex = vertex;
+    this.options.fragment = fragment;
+
+    // Mark as custom shader
+    this.usingCustomVertex = true;
+
+    this.engine.shader(this.options.vertex, this.options.fragment);
     return this;
   }
 
@@ -272,10 +284,21 @@ export class Sandbox {
    * sandbox.setFragment(fragmentSource);
    */
   setFragment(fragment: string): this {
-    const version = this.webglVersion();
-    const vertex = version === 1 ? WebGL1_Vert : WebGL2_Vert;
+    // Detect versions
+    const fragVersion = Program.detectVersion(fragment);
+    const vertVersion = Program.detectVersion(this.options.vertex);
 
-    this.engine.shader(vertex, fragment);
+    // Update options
+    this.options.fragment = fragment;
+
+    if (fragVersion !== vertVersion) {
+      if (!this.usingCustomVertex) {
+        // Auto-switch only if not using custom vertex shader
+        this.options.vertex = fragVersion === 2 ? WebGL2_Vert : WebGL1_Vert;
+      }
+    }
+
+    this.engine.shader(this.options.vertex, this.options.fragment);
     return this;
   }
 
