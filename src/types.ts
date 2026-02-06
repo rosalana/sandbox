@@ -147,3 +147,15 @@ export type DrawMode = "TRIANGLES" | "TRIANGLE_STRIP" | "TRIANGLE_FAN";
 
 /** Render callback signature */
 export type HookCallback = (clock: ClockState) => void | false;
+
+export type ShaderImport = {
+  module: string;
+  name: string;
+  alias: string;
+  line: number;
+}
+
+export type ModuleDefinition = {
+  name: string;
+  source: string;
+}
