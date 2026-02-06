@@ -1,5 +1,14 @@
-import { ShaderImport, WebGLVersion } from "../types";
-import Module from "./module";
+import { SandboxError } from "../errors";
+import { defaultUniforms } from "../defaults";
+import {
+  GLSLType,
+  GLSLVariable,
+  ShaderFunction,
+  ShaderImport,
+  ShaderParseResult,
+  ShaderUniform,
+  WebGLVersion,
+} from "../types";
 
 export default class Shader {
   private code: { original: string; compiled: string | null } = {
@@ -7,44 +16,97 @@ export default class Shader {
     compiled: null,
   };
 
-  constructor(shaderSource: string) {
-    this.code.original = shaderSource;
+  private uniforms = defaultUniforms;
+  private parsed: ShaderParseResult | null = null;
+
+  constructor(source: string) {
+    this.code.original = source;
   }
 
   /**
-   * Detect WebGL version from shader source.
+   * Detect WebGL version from shader source
    */
-  version(): WebGLVersion {
-    return /^\s*#version\s+300\s+es/m.test(this.code.original) ? 2 : 1;
+  version(source: string = this.code.original): WebGLVersion {
+    return /^\s*#version\s+300\s+es/m.test(source) ? 2 : 1;
   }
 
   compile(): string {
     if (this.code.compiled) return this.code.compiled;
 
-    this.resolveImports();
+    this.parsed = this.parse(this.code.original);
 
-    console.log("Compiled shader code:\n", this.code.compiled);
+    // this.resolveImports();
+    // this.resolveUniforms();
+
+    this.build();
+
+    // this.resolveImports();
+    // this.resolveUniforms();
+
+    // this.build();
 
     return this.code.compiled || this.code.original;
   }
 
-  private parseImports(): ShaderImport[] {
+  /**
+   * Parse shader source to extract imports, uniforms, and functions.
+   */
+  private parse(source: string = this.code.original): ShaderParseResult {
+    return {
+      imports: this.parseImports(source),
+      uniforms: this.parseUniforms(source),
+      functions: this.parseFunctions(source),
+    };
+  }
+
+  private build(): void {
+    const uniformsToAdd = this.checkUniformsPresence();
+
+    console.log(uniformsToAdd);
+  }
+
+  private checkUniformsPresence(): ShaderUniform[] {
+    if (!this.parsed) return [];
+
+    const missingUniforms: ShaderUniform[] = [];
+
+    // has all required uniforms
+    for (const [name] of this.uniforms) {
+      if (!this.parsed.uniforms.some((u) => u.name === name)) {
+        missingUniforms.push({ name, type: this.uniforms.get(name)!, line: 0 });
+      }
+
+      const mismatch = this.parsed.uniforms.find(
+        (u) => u.name === name && u.type !== this.uniforms.get(name),
+      );
+      if (mismatch) {
+        throw new SandboxError(
+          `Uniform "${name}" has type "${mismatch.type}" but expected "${this.uniforms.get(name)}"`,
+          "UNKNOWN_ERROR",
+        );
+      }
+    }
+
+    return missingUniforms;
+  }
+
+  private parseImports(source: string): ShaderImport[] {
     const importRegex =
       /^\s*#import\s+(\w+)(?:\s+as\s+(\w+))?\s+from\s+["'](.+)["']/gm;
-    const imports = [];
+    const imports: ShaderImport[] = [];
 
     let match: RegExpExecArray | null;
     let lineNumber = 1;
     let lastIndex = 0;
 
-    while ((match = importRegex.exec(this.code.original)) !== null) {
+    while ((match = importRegex.exec(source)) !== null) {
       lineNumber += (
-        this.code.original.substring(lastIndex, match.index).match(/\n/g) || []
+        source.substring(lastIndex, match.index).match(/\n/g) || []
       ).length;
       lastIndex = match.index;
 
       const name = match[1];
-      const alias = match[2] || match[1]; // alias defaults to name if not specified
+      const alias = match[2] || match[1];
       const module = match[3];
 
       imports.push({ name, alias, module, line: lineNumber });
@@ -53,44 +115,160 @@ export default class Shader {
     return imports;
   }
 
-  private resolveImports(): void {
-    const imports = this.parseImports();
+  private parseUniforms(source: string): ShaderUniform[] {
+    const uniformRegex =
+      /^\s*uniform\s+(?:(?:highp|mediump|lowp)\s+)?(\w+)\s+(\w+)\s*;/gm;
+    const uniforms: ShaderUniform[] = [];
 
-    for (const imp of imports) {
-      const method = this.resolveFromModule(imp.alias, imp.module);
+    let match: RegExpExecArray | null;
+    let lineNumber = 1;
+    let lastIndex = 0;
 
-      this.pushMethod(method);
-      this.removeImport(imp);
+    while ((match = uniformRegex.exec(source)) !== null) {
+      lineNumber += (
+        source.substring(lastIndex, match.index).match(/\n/g) || []
+      ).length;
+      lastIndex = match.index;
+
+      const type = match[1] as GLSLType;
+      const name = match[2];
+
+      uniforms.push({ name, type, line: lineNumber });
     }
+
+    return uniforms;
   }
 
-  private pushMethod(method: string): void {
-    const code = this.code.compiled || this.code.original;
-    const functionRegex =
-      /^(\s*(?:void|float|int|bool|vec[234]|mat[234]|sampler2D|samplerCube)\s+\w+\s*\()/m;
-    const match = code.match(functionRegex);
+  private parseFunctions(source: string): ShaderFunction[] {
+    const functions: ShaderFunction[] = [];
 
-    if (match) {
-      const index = code.search(functionRegex);
-      this.code.compiled =
-        code.substring(0, index) + "\n" + method + "\n" + code.substring(index);
-    } else {
-      this.code.compiled = "\n" + method + "\n" + code;
+    const returnTypes =
+      "void|float|int|uint|bool|vec[234]|ivec[234]|uvec[234]|bvec[234]|mat[234](?:x[234])?|sampler2D|samplerCube|sampler3D|sampler2DArray";
+
+    const funcRegex = new RegExp(
+      `^\\s*(${returnTypes})\\s+(\\w+)\\s*\\(([^)]*)\\)\\s*\\{`,
+      "gm",
+    );
+
+    let match: RegExpExecArray | null;
+
+    while ((match = funcRegex.exec(source)) !== null) {
+      const returnType = match[1];
+      const name = match[2];
+      const paramsStr = match[3].trim();
+      const startIndex = match.index;
+
+      // Calculate line number
+      const lineNumber =
+        (source.substring(0, startIndex).match(/\n/g) || []).length + 1;
+
+      // Find function body using brace counting
+      const bodyStartIndex = source.indexOf("{", startIndex);
+      const bodyEndIndex = this.findClosingBrace(source, bodyStartIndex);
+
+      if (bodyEndIndex === -1) continue;
+
+      // Extract body (including braces)
+      const body = source.slice(bodyStartIndex, bodyEndIndex + 1);
+
+      // Parse parameters
+      const params = this.parseParams(paramsStr);
+
+      functions.push({
+        name,
+        type: returnType as GLSLType,
+        params,
+        body,
+        line: lineNumber,
+      });
     }
+
+    return functions;
   }
 
-  private removeImport(imp: ShaderImport): void {
-    const importRegex = new RegExp(
-      `^\\s*#import\\s+${imp.name}(?:\\s+as\\s+${imp.alias})?\\s+from\\s+["']${imp.module}["']`,
-      "m",
-    );
-    this.code.compiled = (this.code.compiled || this.code.original).replace(
-      importRegex,
-      "",
-    );
+  private parseParams(paramsStr: string): GLSLVariable[] {
+    if (!paramsStr.trim()) return [];
+
+    const params: import("../types").GLSLVariable[] = [];
+    const paramParts = paramsStr.split(",");
+
+    for (const part of paramParts) {
+      const trimmed = part.trim();
+      if (!trimmed) continue;
+
+      // Remove qualifiers (in, out, inout, const, highp, mediump, lowp)
+      const withoutQualifiers = trimmed
+        .replace(/\b(in|out|inout|const|highp|mediump|lowp)\b\s*/g, "")
+        .trim();
+
+      // Match: type name or type name[size]
+      const paramMatch = withoutQualifiers.match(/^(\w+)\s+(\w+)(?:\[\d*\])?$/);
+
+      if (paramMatch) {
+        params.push({
+          type: paramMatch[1] as GLSLType,
+          name: paramMatch[2],
+        });
+      }
+    }
+
+    return params;
   }
 
-  private resolveFromModule(method: string, moduleName: string): string {
-    return Module.resolve(moduleName).method(method);
+  private findClosingBrace(source: string, startIndex: number): number {
+    let braceCount = 0;
+    let inBrace = false;
+    let inString = false;
+    let inLineComment = false;
+    let inBlockComment = false;
+
+    for (let i = startIndex; i < source.length; i++) {
+      const char = source[i];
+      const nextChar = source[i + 1];
+      const prevChar = source[i - 1];
+
+      // Handle comments
+      if (!inString && !inBlockComment && char === "/" && nextChar === "/") {
+        inLineComment = true;
+        continue;
+      }
+      if (inLineComment && char === "\n") {
+        inLineComment = false;
+        continue;
+      }
+      if (!inString && !inLineComment && char === "/" && nextChar === "*") {
+        inBlockComment = true;
+        i++;
+        continue;
+      }
+      if (inBlockComment && char === "*" && nextChar === "/") {
+        inBlockComment = false;
+        i++;
+        continue;
+      }
+
+      // Skip if in comment
+      if (inLineComment || inBlockComment) continue;
+
+      // Handle strings (GLSL doesn't have strings, but just in case)
+      if (char === '"' && prevChar !== "\\") {
+        inString = !inString;
+        continue;
+      }
+      if (inString) continue;
+
+      // Count braces
+      if (char === "{") {
+        braceCount++;
+        inBrace = true;
+      } else if (char === "}") {
+        braceCount--;
+        if (inBrace && braceCount === 0) {
+          return i;
+        }
+      }
+    }
+
+    return -1;
   }
 }

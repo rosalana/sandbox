@@ -5,7 +5,7 @@ import EffectsModule from "./shaders/modules/effects.glsl?raw";
 import InteractionModule from "./shaders/modules/interaction.glsl?raw";
 import PhysicsModule from "./shaders/modules/physics.glsl?raw";
 import SimpleModule from "./shaders/modules/simple.glsl?raw";
-import { ModuleDefinition } from "./types";
+import { GLSLType, ModuleDefinition, ShaderUniform } from "./types";
 
 /** Registry of all defined modules */
 export const modules = new Map<string, ModuleDefinition>();
@@ -30,4 +30,12 @@ export const uniforms = new Set<string>([
   "u_delta",
   "u_mouse",
   "u_frame",
+]);
+
+export const defaultUniforms = new Map<ShaderUniform['name'], ShaderUniform['type']>([
+  ["u_resolution", "vec2"],
+  ["u_time", "float"],
+  ["u_delta", "float"],
+  ["u_mouse", "vec2"],
+  ["u_frame", "int"],
 ]);

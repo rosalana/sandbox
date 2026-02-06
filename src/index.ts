@@ -12,6 +12,7 @@ import Listener from "./tools/listener";
 import WebGL from "./tools/web_gl";
 import Program from "./tools/program";
 import Module from "./tools/module";
+import Shader from "./tools/shader";
 
 export * from "./types";
 export * from "./errors";
@@ -20,7 +21,7 @@ import WebGL1_Vert from "./shaders/webgl1_shader.vert?raw";
 import WebGL1_Frag from "./shaders/webgl1_shader.frag?raw";
 import WebGL2_Vert from "./shaders/webgl2_shader.vert?raw";
 import WebGL2_Frag from "./shaders/webgl2_shader.frag?raw";
-import Shader from "./tools/shader";
+import Test_Frag from "./shaders/test.frag?raw";
 
 /**
  * Sandbox - A lightweight WebGL wrapper for shader effects.
@@ -105,8 +106,6 @@ export class Sandbox {
 
   /**
    * Get the list of available shader modules that can be used with `#import` in shader source.
-   *
-   * !! for every module should return the list of functions
    */
   static availableModules(): string[] {
     return Module.available();
@@ -332,6 +331,20 @@ export class Sandbox {
 
     this.engine.shader(this.options.vertex, this.options.fragment);
     return this;
+  }
+
+  /**
+   * Get current fragment shader source.
+   */
+  getFragment(): string {
+    return this.options.fragment;
+  }
+
+  /**
+   * Get current vertex shader source.
+   */
+  getVertex(): string {
+    return this.options.vertex;
   }
 
   /**

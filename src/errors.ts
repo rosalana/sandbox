@@ -7,6 +7,7 @@ export type SandboxErrorCode =
   | "SHADER_VERSION_MISMATCH"
   | "MODULE_NOT_FOUND"
   | "MODULE_METHOD_NOT_FOUND"
+  | "MODULE_CIRCULAR_DEPENDENCY"
   | "UNKNOWN_ERROR";
 
 /** Base error class for all Sandbox errors */
@@ -126,5 +127,15 @@ export class SandboxModuleMethodNotFoundError extends SandboxError {
       "MODULE_METHOD_NOT_FOUND",
     );
     this.name = "SandboxModuleMethodNotFoundError";
+  }
+}
+
+export class SandboxModuleCircularDependencyError extends SandboxError {
+  constructor(public readonly chain: string[]) {
+    super(
+      `Circular dependency detected in shader modules: ${chain.join(" -> ")}`,
+      "MODULE_CIRCULAR_DEPENDENCY",
+    );
+    this.name = "SandboxModuleCircularDependencyError";
   }
 }

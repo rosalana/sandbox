@@ -148,14 +148,111 @@ export type DrawMode = "TRIANGLES" | "TRIANGLE_STRIP" | "TRIANGLE_FAN";
 /** Render callback signature */
 export type HookCallback = (clock: ClockState) => void | false;
 
-export type ShaderImport = {
-  module: string;
+/** GLSL uniform types */
+export type GLSLType =
+  | "float"
+  | "int"
+  | "bool"
+  | "vec2"
+  | "vec3"
+  | "vec4"
+  | "ivec2"
+  | "ivec3"
+  | "ivec4"
+  | "bvec2"
+  | "bvec3"
+  | "bvec4"
+  | "mat2"
+  | "mat3"
+  | "mat4"
+  | "sampler2D"
+  | "samplerCube";
+
+/**
+ * Uniform requirement parsed from module source
+ * @deprecated
+ * */
+export interface ModuleUniformRequirement {
+  /** Original name in module (e.g., "u_intensity") */
   name: string;
+  /** GLSL type */
+  type: GLSLType;
+  /** Renamed name after preprocessing (e.g., "u_ripple_intensity") */
+  renamedTo?: string;
+}
+
+/**
+ * Parsed function from module
+ * @deprecated
+ * */
+export interface ModuleFunction {
+  /** Function name */
+  name: string;
+  /** Return type */
+  returnType: string;
+  /** Function parameters */
+  params: string;
+  /** Function body (including braces) */
+  body: string;
+  /** Full function source code */
+  source: string;
+  /** Uniforms used by this function */
+  uniforms: ModuleUniformRequirement[];
+  /** Other functions called by this function */
+  dependencies: string[];
+}
+
+/** Import statement parsed from shader */
+export interface ShaderImport {
+  /** Module identifier (e.g., "sandbox/math") */
+  module: string;
+  /** Original function name in module */
+  name: string;
+  /** Alias to use in shader (defaults to name) */
   alias: string;
+  /** Line number where import appears */
   line: number;
 }
 
-export type ModuleDefinition = {
+export type GLSLVariable = {
+  /** Variable name */
   name: string;
+  /** GLSL type */
+  type: GLSLType;
+};
+
+export type ShaderUniform = GLSLVariable & {
+  /** Line number where import appears */
+  name: "u_time" | "u_resolution" | "u_delta" | "u_mouse" | "u_frame" | string;
+  line: number;
+};
+
+export type ShaderFunction = {
+  /** Function name */
+  name: string;
+  /** Return type */
+  type: GLSLType;
+  /** Function parameters */
+  params: GLSLVariable[];
+  /** Function body (including braces) */
+  body: string;
+  /** Line number where function is declared */
+  line: number;
+};
+
+export type ShaderParseResult = {
+  /** All imports found in shader */
+  imports: ShaderImport[];
+  /** All uniforms declared in shader */
+  uniforms: ShaderUniform[];
+  /** All functions declared in shader */
+  functions: ShaderFunction[];
+};
+
+/** Module definition for registration */
+export interface ModuleDefinition {
+  /** Module identifier (e.g., "sandbox", "sandbox/color") */
+  name: string;
+  /** GLSL source code containing functions */
   source: string;
 }
