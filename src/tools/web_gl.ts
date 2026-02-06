@@ -13,6 +13,7 @@ import Geometry from "./geometry";
 import Program from "./program";
 import Uniforms from "./uniforms";
 import Hooks from "./hooks";
+import Shader from "./shader";
 
 /**
  * Main WebGL orchestrator.
@@ -202,8 +203,10 @@ export default class WebGL {
    */
   shader(vertex: string, fragment: string): this {
     try {
-      // Compile program
-      this._program.compile(vertex, fragment);
+
+      const shader = new Shader(fragment).compile();
+      
+      this._program.compile(vertex, shader);
 
       // Update version based on shaders
       this._version = this._program.getVersion();
