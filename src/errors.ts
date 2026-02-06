@@ -5,6 +5,8 @@ export type SandboxErrorCode =
   | "SHADER_COMPILATION_FAILED"
   | "PROGRAM_LINK_FAILED"
   | "SHADER_VERSION_MISMATCH"
+  | "MODULE_NOT_FOUND"
+  | "MODULE_METHOD_NOT_FOUND"
   | "UNKNOWN_ERROR";
 
 /** Base error class for all Sandbox errors */
@@ -104,5 +106,25 @@ export class SandboxProgramError extends SandboxError {
   constructor(public readonly infoLog: string) {
     super(`Shader program linking failed\n\n${infoLog}`, "PROGRAM_LINK_FAILED");
     this.name = "SandboxProgramError";
+  }
+}
+
+export class SandboxModuleNotFoundError extends SandboxError {
+  constructor(public readonly moduleName: string) {
+    super(`Shader module not found: ${moduleName}`, "MODULE_NOT_FOUND");
+    this.name = "SandboxModuleNotFoundError";
+  }
+}
+
+export class SandboxModuleMethodNotFoundError extends SandboxError {
+  constructor(
+    public readonly moduleName: string,
+    public readonly methodName: string,
+  ) {
+    super(
+      `Method '${methodName}' not found in shader module: ${moduleName}`,
+      "MODULE_METHOD_NOT_FOUND",
+    );
+    this.name = "SandboxModuleMethodNotFoundError";
   }
 }
