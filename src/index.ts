@@ -11,6 +11,7 @@ import { SandboxError } from "./errors";
 import Listener from "./tools/listener";
 import WebGL from "./tools/web_gl";
 import Program from "./tools/program";
+import Module from "./tools/module";
 
 export * from "./types";
 export * from "./errors";
@@ -19,6 +20,7 @@ import WebGL1_Vert from "./shaders/webgl1_shader.vert?raw";
 import WebGL1_Frag from "./shaders/webgl1_shader.frag?raw";
 import WebGL2_Vert from "./shaders/webgl2_shader.vert?raw";
 import WebGL2_Frag from "./shaders/webgl2_shader.frag?raw";
+import Shader from "./tools/shader";
 
 /**
  * Sandbox - A lightweight WebGL wrapper for shader effects.
@@ -85,6 +87,37 @@ export class Sandbox {
    */
   static create(canvas: HTMLCanvasElement, options?: SandboxOptions): Sandbox {
     return new Sandbox(canvas, options);
+  }
+
+  /**
+   * Define a shader module that can be imported in shader source with `#import <function> from "module_name"`.
+   * @example
+   * Sandbox.defineModule("my_module", source);
+   * // Then in shader:
+   * // #import myFunc from "my_module"
+   * // void main() {
+   * //   myFunc();
+   * // }
+   */
+  static defineModule(name: string, source: string): void {
+    Module.define(name, source);
+  }
+
+  /**
+   * Get the list of available shader modules that can be used with `#import` in shader source.
+   *
+   * !! for every module should return the list of functions
+   */
+  static availableModules(): string[] {
+    return Module.available();
+  }
+
+  /**
+   * Compile a shader source with Sandbox's shader preprocessor and return the final GLSL code.
+   * This is useful for debugging shader code or precompiling shaders for production use.
+   */
+  static compile(shaderSource: string): string {
+    return new Shader(shaderSource).compile();
   }
 
   private resolveOptions(options?: SandboxOptions): ResolvedSandboxOptions {
@@ -303,7 +336,7 @@ export class Sandbox {
 
   /**
    * Set the max frame rate runtime
-   * 
+   *
    * @example
    * sandbox.setFps(30); // Limit to 30 FPS
    * sandbox.setFps(0);  // Unlimited FPS
