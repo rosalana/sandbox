@@ -203,10 +203,11 @@ export default class WebGL {
    */
   shader(vertex: string, fragment: string): this {
     try {
+      // Compile Sandbox syntax shaders to WebGL GLSL
+      const vert = new Shader(vertex).compile();
+      const frag = new Shader(fragment).compile();
 
-      const shader = new Shader(fragment).compile();
-      
-      this._program.compile(vertex, shader);
+      this._program.compile(vert, frag);
 
       // Update version based on shaders
       this._version = this._program.getVersion();
