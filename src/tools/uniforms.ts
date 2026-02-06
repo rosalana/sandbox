@@ -6,6 +6,7 @@ import type {
   WebGLContext,
 } from "../types";
 import Uniform from "./uniform";
+import { uniforms as BUILT_INS } from "../defaults";
 
 /**
  * Manages a collection of uniforms with fluent API.
@@ -15,15 +16,6 @@ export default class Uniforms {
   private gl: WebGLContext;
   private program: WebGLProgram | null = null;
   private uniforms: Map<string, Uniform> = new Map();
-
-  /** Built-in uniform names that are handled automatically */
-  private static readonly BUILT_INS = new Set([
-    "u_resolution",
-    "u_time",
-    "u_delta",
-    "u_mouse",
-    "u_frame",
-  ]);
 
   constructor(gl: WebGLContext) {
     this.gl = gl;
@@ -124,7 +116,7 @@ export default class Uniforms {
       return this;
     }
 
-    for (const name of Uniforms.BUILT_INS) {
+    for (const name of BUILT_INS) {
       const uniform = this.uniforms.get(name);
       if (uniform) {
         uniform.upload(this.gl, this.program);
