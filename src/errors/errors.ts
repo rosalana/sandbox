@@ -1,0 +1,21 @@
+export type SandboxErrorCode =
+  | "CONTEXT_ERROR"
+  | "VALIDATION_ERROR"
+  | "PROGRAM_ERROR"
+  | "SHADER_ERROR"
+  | "MODULE_ERROR"
+  | "UNKNOWN_ERROR";
+
+export class SandboxError extends Error {
+  constructor(
+    message: string,
+    public readonly code: SandboxErrorCode,
+  ) {
+    super(message);
+  }
+}
+
+export * from "./context";
+export * from "./shader";
+export * from "./module";
+export * from "./program";
