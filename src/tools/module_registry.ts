@@ -5,6 +5,15 @@ export default class ModuleRegistry {
   private static modules: Map<string, Module> = new Map();
 
   /**
+   * Compile all registered modules. This can be called after loading new modules to ensure they are ready for use.
+   */
+  static compile(): void {
+    this.modules.forEach((module) => {
+      module.compile();
+    });
+  }
+
+  /**
    * Register a new module in the registry.
    */
   static register(name: string, module: Module): void {
@@ -24,12 +33,33 @@ export default class ModuleRegistry {
     return module;
   }
 
+  /**
+   * Check if a module exists in the registry by name.
+   */
+  static has(name: string): boolean {
+    return this.modules.has(name);
+  }
+
+  /**
+   * Remove a module from the registry by name.
+   */
   static remove(name: string): void {
     this.modules.delete(name);
   }
 
-  static load(): void {
-    // load modules from file or predefined list..
-    // has to be called at the initialization of the sandbox
+  /**
+   * Load multiple modules into the registry at once.
+   */
+  static load(modules: Module[]): void {
+    modules.forEach((module) => {
+      this.register(module.name, module);
+    });
+  }
+
+  /**
+   * Destroy the instance by clearing all registered modules.
+   */
+  static destroy(): void {
+    this.modules.clear();
   }
 }

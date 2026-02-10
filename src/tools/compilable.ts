@@ -48,6 +48,9 @@ export default class Compilable {
     return parseGLSLVersion(source);
   }
 
+  /**
+   * Compile the code
+   */
   compile(): string {
     if (this.code.compiled) return this.code.compiled;
 

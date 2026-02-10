@@ -3,7 +3,7 @@ import Compilable from "./compilable";
 import ModuleRegistry from "./module_registry";
 
 export default class Module extends Compilable {
-  private name: ModuleDefinition["name"];
+  public name: ModuleDefinition["name"];
   private options: ModuleDefinition["options"] = {};
 
   constructor(
