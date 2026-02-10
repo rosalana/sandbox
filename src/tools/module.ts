@@ -1,4 +1,5 @@
-import { ModuleDefinition } from "../types";
+import { SandboxModuleMethodNotFoundError } from "../errors";
+import { ModuleDefinition, ModuleFunctionExtraction } from "../types";
 import Compilable from "./compilable";
 import ModuleRegistry from "./module_registry";
 
@@ -51,6 +52,26 @@ export default class Module extends Compilable {
       name: this.name,
       source: this.code.original,
       options: this.options,
+    };
+  }
+
+  /**
+   * Extract method with depadencies
+   * @todo: missing the recursive method extraction
+   */
+  extract(name: string): ModuleFunctionExtraction {
+    this.compile(); // compilation is required
+
+    const method = this.parsed!.functions.find((f) => f.name === name);
+    const uniforms = this.parsed!.uniforms;
+
+    if (!method) {
+      throw new SandboxModuleMethodNotFoundError(this.name, name);
+    }
+
+    return {
+      function: method,
+      uniforms,
     };
   }
 }

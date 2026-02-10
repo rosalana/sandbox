@@ -231,3 +231,8 @@ export interface ModuleDefinition {
   /** GLSL source code containing functions */
   source: string;
 }
+
+export type ModuleFunctionExtraction = {
+  function: ShaderFunction;
+  uniforms: ShaderUniform[];
+};

@@ -6,13 +6,17 @@ import {
   parseUniforms,
 } from "../helpers/shader_parsing";
 import {
+  ModuleFunctionExtraction,
   ShaderFunction,
   ShaderParseResult,
   ShaderUniform,
   WebGLVersion,
 } from "../types";
 import Module from "./module";
-import { SandboxShaderRequirementMismatchError } from "../errors";
+import {
+  SandboxModuleMethodNotFoundError,
+  SandboxShaderRequirementMismatchError,
+} from "../errors";
 
 export default class Compilable {
   /** Original and compiled shader code */
@@ -82,6 +86,14 @@ export default class Compilable {
 
     for (const imp of this.parsed.imports) {
       const module = Module.resolve(imp.module);
+      module.compile();
+      const extraction = module.extract(imp.name);
+
+      this.requirements.functions.set(imp.alias, extraction.function);
+
+      extraction.uniforms.forEach((u) => {
+        this.requirements.uniforms.set(`${imp.alias}_${u.name}`, u);
+      });
     }
   }
 
