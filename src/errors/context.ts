@@ -1,4 +1,4 @@
-import { SandboxError } from "./errors";
+import { SandboxError } from "./index";
 
 export class SandboxWebGLNotSupportedError extends SandboxError {
   constructor() {

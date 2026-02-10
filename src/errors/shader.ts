@@ -1,18 +1,18 @@
-import { SandboxError } from "./errors";
+import { SandboxError } from "./index";
 
 export class SandboxShaderVersionMismatchError extends SandboxError {
   constructor(
     public readonly vertexVersion: number,
-    public readonly framentVersion: number,
+    public readonly fragmentVersion: number,
   ) {
     super(
-      `Vertex and fragment shader WebGL versions do not match (${vertexVersion} vs ${framentVersion})`,
+      `Vertex and fragment shader WebGL versions do not match (${vertexVersion} vs ${fragmentVersion})`,
       "VALIDATION_ERROR",
     );
   }
 }
 
-export class SandboxShaderCompilationError extends SandboxError {
+export class SandboxShaderGLSLCompilationError extends SandboxError {
   public readonly lines: number[];
 
   constructor(
@@ -20,7 +20,7 @@ export class SandboxShaderCompilationError extends SandboxError {
     public readonly source: string,
     public readonly infoLog: string,
   ) {
-    const lines = SandboxShaderCompilationError.parseErrorLines(infoLog);
+    const lines = SandboxShaderGLSLCompilationError.parseErrorLines(infoLog);
     const lineInfo = lines.length > 0 ? ` at line(s): ${lines.join(", ")}` : "";
 
     super(
@@ -50,5 +50,19 @@ export class SandboxShaderCompilationError extends SandboxError {
     }
 
     return [...lines].sort((a, b) => a - b);
+  }
+}
+
+export class SandboxShaderRequirementMismatchError extends SandboxError {
+  constructor(
+    public readonly requirement: "uniform" | "function",
+    public readonly name: string,
+    public readonly expectedType: string,
+    public readonly actualType: string,
+  ) {
+    super(
+      `The shader ${requirement} "${name}" has type "${actualType}" but expected "${expectedType}"`,
+      "SHADER_ERROR",
+    );
   }
 }
