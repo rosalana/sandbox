@@ -1,6 +1,7 @@
 import type {
   AnyUniformValue,
   HookCallback,
+  ModuleDefinition,
   ResolvedSandboxOptions,
   SandboxOptions,
   UniformSchema,
@@ -100,14 +101,14 @@ export class Sandbox {
    * //   myFunc();
    * // }
    */
-  static defineModule(name: string, source: string): void {
-    Module.define(name, source);
+  static defineModule(definition: ModuleDefinition): void {
+    Module.define(definition);
   }
 
   /**
    * Get the list of available shader modules that can be used with `#import` in shader source.
    */
-  static availableModules(): string[] {
+  static availableModules() {
     return Module.available();
   }
 

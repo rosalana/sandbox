@@ -34,4 +34,23 @@ export default class Module extends Compilable {
   static resolve(name: string): Module {
     return ModuleRegistry.resolve(name);
   }
+
+  /**
+   * Get the list of available shader modules that can be use with index
+   */
+  static available() {
+    return ModuleRegistry.available();
+  }
+
+  /**
+   * Get the module definition
+   * @todo: should return more information about the module, such as list of methods, uniforms, etc. This will require parsing the module source code to extract this information.
+   */
+  getDefinition() {
+    return {
+      name: this.name,
+      source: this.code.original,
+      options: this.options,
+    };
+  }
 }

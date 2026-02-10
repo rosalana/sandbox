@@ -14,6 +14,15 @@ export default class ModuleRegistry {
   }
 
   /**
+   * Get the list of available shader modules that can be use with index
+   */
+  static available() {
+    return Array.from(this.modules.values()).map((module) =>
+      module.getDefinition(),
+    );
+  }
+
+  /**
    * Register a new module in the registry.
    */
   static register(name: string, module: Module): void {

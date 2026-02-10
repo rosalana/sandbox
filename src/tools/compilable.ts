@@ -16,16 +16,16 @@ import { SandboxShaderRequirementMismatchError } from "../errors";
 
 export default class Compilable {
   /** Original and compiled shader code */
-  private code: { original: string; compiled: string | null } = {
+  public code: { original: string; compiled: string | null } = {
     original: "",
     compiled: null,
   };
 
   /** Parsed shader components */
-  private parsed: ShaderParseResult | null = null;
+  public parsed: ShaderParseResult | null = null;
 
   /** Requirements that must be present in the shader */
-  private requirements: {
+  public requirements: {
     uniforms: Map<string, ShaderUniform>;
     functions: Map<string, ShaderFunction>;
   } = {
