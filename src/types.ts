@@ -168,15 +168,6 @@ export type GLSLType =
   | "sampler2D"
   | "samplerCube";
 
-export interface ModuleDefinition {
-  /** Module name */
-  name: string;
-  /** GLSL source code containing functions */
-  source: string;
-  /** Optional options for module */
-  options?: Record<string, any>; // add TS for this
-}
-
 export type GLSLVariable = {
   /** Variable name */
   name: string;
@@ -224,12 +215,13 @@ export type ShaderParseResult = {
   functions: ShaderFunction[];
 };
 
-/** Module definition for registration */
 export interface ModuleDefinition {
-  /** Module identifier (e.g., "sandbox", "sandbox/color") */
+  /** Module name */
   name: string;
   /** GLSL source code containing functions */
   source: string;
+  /** Optional options for module */
+  options?: Record<string, any>; // add TS for this
 }
 
 export type ModuleFunctionExtraction = {
