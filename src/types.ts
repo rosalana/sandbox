@@ -168,50 +168,13 @@ export type GLSLType =
   | "sampler2D"
   | "samplerCube";
 
-/**
- * Uniform requirement parsed from module source
- * @deprecated
- * */
-export interface ModuleUniformRequirement {
-  /** Original name in module (e.g., "u_intensity") */
+export interface ModuleDefinition {
+  /** Module name */
   name: string;
-  /** GLSL type */
-  type: GLSLType;
-  /** Renamed name after preprocessing (e.g., "u_ripple_intensity") */
-  renamedTo?: string;
-}
-
-/**
- * Parsed function from module
- * @deprecated
- * */
-export interface ModuleFunction {
-  /** Function name */
-  name: string;
-  /** Return type */
-  returnType: string;
-  /** Function parameters */
-  params: string;
-  /** Function body (including braces) */
-  body: string;
-  /** Full function source code */
+  /** GLSL source code containing functions */
   source: string;
-  /** Uniforms used by this function */
-  uniforms: ModuleUniformRequirement[];
-  /** Other functions called by this function */
-  dependencies: string[];
-}
-
-/** Import statement parsed from shader */
-export interface ShaderImport {
-  /** Module identifier (e.g., "sandbox/math") */
-  module: string;
-  /** Original function name in module */
-  name: string;
-  /** Alias to use in shader (defaults to name) */
-  alias: string;
-  /** Line number where import appears */
-  line: number;
+  /** Optional options for module */
+  options?: Record<string, any>; // add TS for this
 }
 
 export type GLSLVariable = {
@@ -221,10 +184,22 @@ export type GLSLVariable = {
   type: GLSLType;
 };
 
+/** Import statement parsed from shader */
+export type ShaderImport = {
+  /** Module identifier (e.g., "sandbox/math") */
+  module: string;
+  /** Original function name in module */
+  name: string;
+  /** Alias to use in shader (defaults to name) */
+  alias: string;
+  /** Line number where import appears */
+  line?: number;
+};
+
 export type ShaderUniform = GLSLVariable & {
   /** Line number where import appears */
   name: "u_time" | "u_resolution" | "u_delta" | "u_mouse" | "u_frame" | string;
-  line: number;
+  line?: number;
 };
 
 export type ShaderFunction = {
@@ -237,7 +212,7 @@ export type ShaderFunction = {
   /** Function body (including braces) */
   body: string;
   /** Line number where function is declared */
-  line: number;
+  line?: number;
 };
 
 export type ShaderParseResult = {
