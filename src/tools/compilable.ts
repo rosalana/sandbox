@@ -1,3 +1,4 @@
+import { defaultUniforms } from "../defaults";
 import {
   parseFunctions,
   parseGLSLVersion,
@@ -32,25 +33,12 @@ export default class Compilable {
     functions: new Map(),
   };
 
-  constructor(
-    source: string,
-    requirements?: { uniforms?: ShaderUniform[]; functions?: ShaderFunction[] },
-  ) {
+  constructor(source: string) {
     this.code.original = source;
 
-    if (requirements) {
-      if (requirements.uniforms) {
-        for (const uniform of requirements.uniforms) {
-          this.requirements.uniforms.set(uniform.name, uniform);
-        }
-      }
-
-      if (requirements.functions) {
-        for (const func of requirements.functions) {
-          this.requirements.functions.set(func.name, func);
-        }
-      }
-    }
+    defaultUniforms.forEach((type, name) => {
+      this.requirements.uniforms.set(name, { name, type, line: 0 });
+    });
   }
 
   /**
