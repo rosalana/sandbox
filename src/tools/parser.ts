@@ -244,11 +244,61 @@ export default class Parser {
     return -1;
   }
 
-  private findFunctionCalls(body: string): ShaderFunctionDependency[] {
-    return [];
+  private findFunctionCalls(body: string): ShaderFunction["dependencies"] {
+    const calls: ShaderFunction["dependencies"] = [];
+
+    // GLSL keywords that look like function calls but aren't
+    const keywords = new Set([
+      "if",
+      "else",
+      "for",
+      "while",
+      "do",
+      "switch",
+      "case",
+      "return",
+      "break",
+      "continue",
+      "discard",
+    ]);
+
+    // Match identifier followed by (
+    const regex = /\b([a-zA-Z_]\w*)\s*\(/g;
+    let match;
+
+    while ((match = regex.exec(body)) !== null) {
+      const name = match[1];
+      if (!keywords.has(name)) {
+        calls.push({
+          name,
+          type: "function",
+          index: match.index,
+        });
+      }
+    }
+
+    return calls;
   }
 
-  private findUniformCalls(body: string, uniforms: ShaderUniform[]): ShaderFunctionDependency[] {
-    return [];
+  private findUniformCalls(
+    body: string,
+    uniforms: ShaderUniform[],
+  ): ShaderFunction["dependencies"] {
+    const calls: ShaderFunction["dependencies"] = [];
+
+    for (const uniform of uniforms) {
+      const regex = new RegExp(`\\b${uniform.name}\\b`, "g");
+      let match;
+
+      while ((match = regex.exec(body)) !== null) {
+        calls.push({
+          name: uniform.name,
+          type: "uniform",
+          index: match.index,
+        });
+      }
+    }
+
+    return calls;
   }
 }

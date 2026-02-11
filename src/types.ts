@@ -198,10 +198,8 @@ type ShaderFunctionDependency = {
   name: string;
   /** Type of dependency */
   type: "function" | "uniform";
-  /** Line number where the dependent is used */
-  line?: number;
-  /** Character position in source where the dependent is used (for better error reporting) */
-  position?: number;
+  /** Character index from start of the function body for rewriting purposes */
+  index?: number;
 }
 
 export type ShaderFunction = {
