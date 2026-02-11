@@ -13,7 +13,9 @@ import Listener from "./tools/listener";
 import WebGL from "./tools/web_gl";
 import Program from "./tools/program";
 import Module from "./tools/module";
+import ModuleRegistry from "./tools/module_registry";
 import Shader from "./tools/shader";
+import { modules as defaultModules } from "./defaults";
 
 export * from "./types";
 export * from "./errors";
@@ -484,3 +486,10 @@ export class Sandbox {
     this.engine.destroy();
   }
 }
+
+// Initialize default modules
+ModuleRegistry.load(
+  Array.from(defaultModules.values()).map(
+    (def) => new Module(def.name, def.source, def.options),
+  ),
+);

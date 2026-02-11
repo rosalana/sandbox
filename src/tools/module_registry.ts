@@ -1,11 +1,11 @@
 import { SandboxModuleNotFoundError } from "../errors";
-import Module from "./module";
+import type Module from "./module";
 
 export default class ModuleRegistry {
   private static modules: Map<string, Module> = new Map();
 
   /**
-   * Compile all registered modules. This can be called after loading new modules to ensure they are ready for use.
+   * Compile all registered modules.
    */
   static compile(): void {
     this.modules.forEach((module) => {
@@ -14,7 +14,7 @@ export default class ModuleRegistry {
   }
 
   /**
-   * Get the list of available shader modules that can be use with index
+   * Get the list of available shader modules.
    */
   static available() {
     return Array.from(this.modules.values()).map((module) =>

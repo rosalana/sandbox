@@ -54,7 +54,6 @@ export default class Compilable {
     if (this.code.compiled) return this.code.compiled;
 
     this.parsed = this.parse(this.code.original);
-    console.log("Parsed shader:", this.parsed);
 
     // do the process..
     if (this.parsed.imports.length > 0) {
