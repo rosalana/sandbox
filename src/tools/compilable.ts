@@ -11,6 +11,7 @@ import {
   SandboxShaderWithoutMainFunctionError,
 } from "../errors";
 import Parser from "./parser";
+import { defaultUniforms } from "../defaults";
 
 type RewriteOp = {
   index: number;
@@ -118,6 +119,8 @@ export default class Compilable {
 
     // Collect uniforms with namespaced names
     for (const uniform of extraction.dependencies.uniforms) {
+      if (defaultUniforms.has(uniform.name)) continue;
+
       const namespacedUniform: ShaderUniform = {
         ...uniform,
         name: `${uniqueAlias}_${uniform.name}`,
@@ -150,6 +153,8 @@ export default class Compilable {
       if (dep.index === undefined) continue;
 
       if (dep.type === "uniform" && uniformNames.has(dep.name)) {
+        if (defaultUniforms.has(dep.name)) continue;
+        
         ops.push({
           index: dep.index,
           oldText: dep.name,
