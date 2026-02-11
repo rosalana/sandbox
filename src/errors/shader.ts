@@ -66,3 +66,12 @@ export class SandboxShaderRequirementMismatchError extends SandboxError {
     );
   }
 }
+
+export class SandboxShaderWithoutMainFunctionError extends SandboxError {
+  constructor() {
+    super(
+      `Shader source does not contain a main() function. Ensure that your shader code defines a main() function as the entry point.`,
+      "SHADER_ERROR",
+    );
+  }
+}

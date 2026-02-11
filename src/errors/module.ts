@@ -17,12 +17,3 @@ export class SandboxModuleMethodNotFoundError extends SandboxError {
     );
   }
 }
-
-export class SandboxModuleCircularDependencyError extends SandboxError {
-  constructor(public readonly chain: string[]) {
-    super(
-      `Circular dependency detected in shader modules: ${chain.join(" -> ")}`,
-      "MODULE_ERROR",
-    );
-  }
-}

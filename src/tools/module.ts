@@ -60,33 +60,36 @@ export default class Module extends Compilable {
   }
 
   /**
-   * Extract a method with all its dependencies (recursive)
-   * Returns the function and all helper functions + uniforms it needs
+   * Extract a method with all its dependencies
    */
-  extract(methodName: string): ModuleFunctionExtraction {
+  extract(name: string): ModuleFunctionExtraction {
     // Compile first to resolve any nested imports
     this.compile();
 
     const content = this.compiled.parse();
 
     // Find the requested method
-    const method = content.functions.find((f) => f.name === methodName);
+    const method = content.functions.find((f) => f.name === name);
     if (!method) {
-      throw new SandboxModuleMethodNotFoundError(this.name, methodName);
+      throw new SandboxModuleMethodNotFoundError(this.name, name);
     }
 
     // Collect all dependencies recursively
     const collectedFunctions = new Map<string, ShaderFunction>();
     const collectedUniforms = new Map<string, ShaderUniform>();
 
-    this.collectDependencies(
-      method,
-      content.functions,
-      content.uniforms,
-      collectedFunctions,
-      collectedUniforms,
-      new Set([methodName]), // visited set to prevent circular deps
-    );
+    this.collectDependencies({
+      current: method,
+      scope: {
+        functions: content.functions,
+        uniforms: content.uniforms,
+      },
+      collected: {
+        functions: collectedFunctions,
+        uniforms: collectedUniforms,
+      },
+      visited: new Set([name]),
+    });
 
     return {
       function: method,
@@ -100,41 +103,51 @@ export default class Module extends Compilable {
   /**
    * Recursively collect all function and uniform dependencies
    */
-  private collectDependencies(
-    func: ShaderFunction,
-    allFunctions: ShaderFunction[],
-    allUniforms: ShaderUniform[],
-    collectedFunctions: Map<string, ShaderFunction>,
-    collectedUniforms: Map<string, ShaderUniform>,
-    visited: Set<string>,
-  ): void {
-    for (const dep of func.dependencies) {
+  private collectDependencies(param: {
+    current: ShaderFunction;
+    scope: {
+      functions: ShaderFunction[];
+      uniforms: ShaderUniform[];
+    };
+    collected: {
+      functions: Map<string, ShaderFunction>;
+      uniforms: Map<string, ShaderUniform>;
+    };
+    visited: Set<string>;
+  }): void {
+    for (const dep of param.current.dependencies) {
       if (dep.type === "function") {
         // Skip if already visited (prevents infinite loops)
-        if (visited.has(dep.name)) continue;
+        if (param.visited.has(dep.name)) continue;
 
         // Find the function in compiled content
-        const depFunc = allFunctions.find((f) => f.name === dep.name);
+        const depFunc = param.scope.functions.find((f) => f.name === dep.name);
         if (depFunc) {
-          visited.add(dep.name);
-          collectedFunctions.set(dep.name, depFunc);
+          param.visited.add(dep.name);
+          param.collected.functions.set(dep.name, depFunc);
 
           // Recursively collect dependencies of this helper
-          this.collectDependencies(
-            depFunc,
-            allFunctions,
-            allUniforms,
-            collectedFunctions,
-            collectedUniforms,
-            visited,
-          );
+          this.collectDependencies({
+            current: depFunc,
+            scope: {
+              functions: param.scope.functions,
+              uniforms: param.scope.uniforms,
+            },
+            collected: {
+              functions: param.collected.functions,
+              uniforms: param.collected.uniforms,
+            },
+            visited: param.visited,
+          });
         }
         // If not found, it's a built-in GLSL function - ignore
       } else if (dep.type === "uniform") {
         // Find uniform in compiled content
-        const depUniform = allUniforms.find((u) => u.name === dep.name);
-        if (depUniform && !collectedUniforms.has(dep.name)) {
-          collectedUniforms.set(dep.name, depUniform);
+        const depUniform = param.scope.uniforms.find(
+          (u) => u.name === dep.name,
+        );
+        if (depUniform && !param.collected.uniforms.has(dep.name)) {
+          param.collected.uniforms.set(dep.name, depUniform);
         }
       }
     }

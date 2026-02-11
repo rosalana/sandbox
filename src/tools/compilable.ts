@@ -6,13 +6,12 @@ import {
   WebGLVersion,
 } from "../types";
 import ModuleRegistry from "./module_registry";
-import { SandboxShaderRequirementMismatchError } from "../errors";
+import {
+  SandboxShaderRequirementMismatchError,
+  SandboxShaderWithoutMainFunctionError,
+} from "../errors";
 import Parser from "./parser";
 
-/**
- * Represents a rewrite operation to be applied to a string
- * Sorted by index descending and applied from end to start
- */
 type RewriteOp = {
   index: number;
   oldText: string;
@@ -93,25 +92,28 @@ export default class Compilable {
   ): void {
     const mainFunc = extraction.function;
 
+    const randomSuffix = Math.random().toString(36).substring(2, 8);
+    const uniqueAlias = `${alias}_${randomSuffix}`;
+
     // Process helper functions first
     for (const helperFunc of extraction.dependencies.functions) {
-      const rewrittenHelper = this.rewriteFunction(
-        helperFunc,
-        alias,
-        extraction.dependencies.uniforms,
-        extraction.dependencies.functions,
-      );
+      const rewrittenHelper = this.rewriteFunction(helperFunc, alias, {
+        uniforms: extraction.dependencies.uniforms,
+        functions: extraction.dependencies.functions,
+        unique: uniqueAlias,
+      });
+
       this.requirements.functions.set(rewrittenHelper.name, rewrittenHelper);
     }
 
     // Process main function
-    const rewrittenMain = this.rewriteFunction(
-      mainFunc,
-      alias,
-      extraction.dependencies.uniforms,
-      extraction.dependencies.functions,
-      true, // isMainFunction - rename to alias
-    );
+    const rewrittenMain = this.rewriteFunction(mainFunc, alias, {
+      uniforms: extraction.dependencies.uniforms,
+      functions: extraction.dependencies.functions,
+      rename: true,
+      unique: uniqueAlias,
+    });
+
     this.requirements.functions.set(rewrittenMain.name, rewrittenMain);
 
     // Collect uniforms with namespaced names
@@ -130,15 +132,19 @@ export default class Compilable {
   private rewriteFunction(
     func: ShaderFunction,
     alias: string,
-    uniforms: ShaderUniform[],
-    helpers: ShaderFunction[],
-    isMainFunction: boolean = false,
+    data: {
+      uniforms: ShaderUniform[];
+      functions: ShaderFunction[];
+      rename?: boolean;
+      unique?: string;
+    } = { rename: false, uniforms: [], functions: [], unique: "" },
   ): ShaderFunction {
-    const uniformNames = new Set(uniforms.map((u) => u.name));
-    const helperNames = new Set(helpers.map((h) => h.name));
+    const uniformNames = new Set(data.uniforms.map((u) => u.name));
+    const helperNames = new Set(data.functions.map((h) => h.name));
 
-    // Collect all rewrite operations
     const ops: RewriteOp[] = [];
+
+    const prefix = data.unique ? data.unique : alias;
 
     for (const dep of func.dependencies) {
       if (dep.index === undefined) continue;
@@ -147,13 +153,13 @@ export default class Compilable {
         ops.push({
           index: dep.index,
           oldText: dep.name,
-          newText: `${alias}_${dep.name}`,
+          newText: `${prefix}_${dep.name}`,
         });
       } else if (dep.type === "function" && helperNames.has(dep.name)) {
         ops.push({
           index: dep.index,
           oldText: dep.name,
-          newText: `${alias}_${dep.name}`,
+          newText: `${prefix}_${dep.name}`,
         });
       }
     }
@@ -162,7 +168,7 @@ export default class Compilable {
     const newBody = this.applyRewrites(func.body, ops);
 
     // Determine new function name
-    const newName = isMainFunction ? alias : `${alias}_${func.name}`;
+    const newName = data.rename ? alias : `${prefix}_${func.name}`;
 
     return {
       ...func,
@@ -175,7 +181,6 @@ export default class Compilable {
    * Apply rewrite operations to a string, processing from end to start
    */
   private applyRewrites(text: string, ops: RewriteOp[]): string {
-    // Sort by index descending
     const sorted = [...ops].sort((a, b) => b.index - a.index);
 
     let result = text;
@@ -196,21 +201,38 @@ export default class Compilable {
     const content = this.original.parse();
     let result = this.original.source;
 
-    // 1. Remove #import lines
+    // Remove #import lines
     result = this.removeImportLines(result, content);
 
-    // 2. Find insertion point (after version directive and existing uniforms, before first function)
-    const insertionPoint = this.findInsertionPoint(result);
+    // Find insertion point for uniforms
+    const insertionPointForUniforms =
+      this.findInsertionPointForUniforms(result);
 
-    // 3. Generate code to insert
-    const generatedCode = this.generateInsertedCode();
+    // Generate code for uniforms
+    const generatedUniformsCode = this.generateUniformsCode();
 
-    if (generatedCode) {
+    if (generatedUniformsCode) {
       result =
-        result.slice(0, insertionPoint) +
-        generatedCode +
-        result.slice(insertionPoint);
+        result.slice(0, insertionPointForUniforms) +
+        generatedUniformsCode + `\n` +
+        result.slice(insertionPointForUniforms);
     }
+
+    // Find insertion point for functions
+    const insertionPointForFunctions =
+      this.findInsertionPointForFunctions(result);
+
+    // Generate code for functions
+    const generatedFunctionsCode = this.generateFunctionCode();
+
+    if (generatedFunctionsCode) {
+      result =
+        result.slice(0, insertionPointForFunctions) +
+        generatedFunctionsCode +
+        result.slice(insertionPointForFunctions);
+    }
+
+    result = result.replace(/\n{3,}/g, "\n\n");
 
     return result;
   }
@@ -226,80 +248,106 @@ export default class Compilable {
     const importLineNumbers = new Set(content.imports.map((i) => i.line));
 
     return lines
-      .filter((_, index) => !importLineNumbers.has(index + 1))
+      .filter((line, index) => {
+        const shouldRemove = importLineNumbers.has(index + 1);
+        if (!shouldRemove && line.trim() === "" && index > 0) {
+          const prevIndex = index - 1;
+          if (importLineNumbers.has(prevIndex + 1)) {
+            return false;
+          }
+        }
+        return !shouldRemove;
+      })
       .join("\n");
   }
 
   /**
-   * Find the point where we should insert generated uniforms and functions
-   * This should be after #version and existing uniforms, before user functions
+   * Find insertion point for uniforms (after existing uniforms)
    */
-  private findInsertionPoint(source: string): number {
+  private findInsertionPointForUniforms(source: string): number {
+    const content = new Parser(source).parse();
+    const last = content.uniforms.find(
+      (u) => u.line === Math.max(...content.uniforms.map((u) => u.line ?? 0)),
+    );
+
     const lines = source.split("\n");
     let insertAfterLine = 0;
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
+    // If there are existing uniforms, insert after the last one
+    if (last && last.line) {
+      insertAfterLine = last.line;
+    } else {
+      // Otherwise, insert after version and precision qualifiers
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
 
-      // Skip version directive
-      if (line.startsWith("#version")) {
-        insertAfterLine = i + 1;
-        continue;
-      }
-
-      // Skip precision qualifiers
-      if (line.startsWith("precision ")) {
-        insertAfterLine = i + 1;
-        continue;
-      }
-
-      // Skip existing uniform declarations
-      if (line.startsWith("uniform ")) {
-        insertAfterLine = i + 1;
-        continue;
-      }
-
-      // Skip empty lines and comments at the top
-      if (line === "" || line.startsWith("//")) {
-        if (insertAfterLine === i) {
+        // Skip version directive
+        if (line.startsWith("#version")) {
           insertAfterLine = i + 1;
+          continue;
         }
-        continue;
-      }
 
-      // Stop at first non-header content
-      break;
+        // Skip precision qualifiers
+        if (line.startsWith("precision ")) {
+          insertAfterLine = i + 1;
+          continue;
+        }
+
+        // Skip empty lines and comments at the top
+        if (line === "" || line.startsWith("//")) {
+          if (insertAfterLine === i) {
+            insertAfterLine = i + 1;
+          }
+          continue;
+        }
+
+        // Stop at first non-header content
+        break;
+      }
     }
 
-    // Calculate character position
     let charPos = 0;
     for (let i = 0; i < insertAfterLine; i++) {
       charPos += lines[i].length + 1; // +1 for newline
     }
+    return charPos;
+  }
 
+  private findInsertionPointForFunctions(source: string): number {
+    const content = new Parser(source).parse();
+    const first = content.functions.find(
+      (u) =>
+        u.line ===
+        Math.min(...content.functions.map((u) => u.line ?? Infinity)),
+    );
+
+    const lines = source.split("\n");
+    let insertAfterLine = 0;
+
+    // If there are existing functions, insert before the first one
+    if (first && first.line) {
+      insertAfterLine = first.line - 2;
+    } else {
+      // Otherwise, this looks like a shader with no functions - which is invalid since it must have a main() function
+      throw new SandboxShaderWithoutMainFunctionError();
+    }
+
+    let charPos = 0;
+    for (let i = 0; i < insertAfterLine; i++) {
+      charPos += lines[i].length + 1; // +1 for newline
+    }
     return charPos;
   }
 
   /**
-   * Generate the code to be inserted (uniforms + functions)
+   * Generate GLSL code for uniforms
    */
-  private generateInsertedCode(): string {
+  private generateUniformsCode(): string {
     const parts: string[] = [];
 
-    // Add uniform declarations
     if (this.requirements.uniforms.size > 0) {
-      parts.push("\n// --- Module uniforms ---");
-      for (const uniform of this.requirements.uniforms.values()) {
+      for (const uniform of this.checkUniformsPresence()) {
         parts.push(`uniform ${uniform.type} ${uniform.name};`);
-      }
-    }
-
-    // Add functions (helpers first, then main functions)
-    // Sort by dependency order would be ideal, but for now just add them
-    if (this.requirements.functions.size > 0) {
-      parts.push("\n// --- Module functions ---");
-      for (const func of this.requirements.functions.values()) {
-        parts.push(this.generateFunctionCode(func));
       }
     }
 
@@ -309,12 +357,21 @@ export default class Compilable {
   }
 
   /**
-   * Generate GLSL code for a function
+   * Generate GLSL code for functions
    */
-  private generateFunctionCode(func: ShaderFunction): string {
-    const params = func.params.map((p) => `${p.type} ${p.name}`).join(", ");
+  private generateFunctionCode(): string {
+    const parts: string[] = [];
 
-    return `${func.type} ${func.name}(${params}) ${func.body}`;
+    if (this.requirements.functions.size > 0) {
+      for (const func of this.checkFunctionsPresence()) {
+        const params = func.params.map((p) => `${p.type} ${p.name}`).join(", ");
+        parts.push(`\n${func.type} ${func.name}(${params}) ${func.body}`);
+      }
+    }
+
+    if (parts.length === 0) return "";
+
+    return parts.join("\n") + "\n";
   }
 
   /**
