@@ -16,7 +16,7 @@ export function parseGLSLVersion(source: string): WebGLVersion {
  */
 export function parseImports(source: string): ShaderImport[] {
   const importRegex =
-    /^\s*#import\s+(\w+)(?:\s+as\s+(\w+))?\s+from\s+["'](.+)["']/gm;
+    /^[ \t]*#import\s+(\w+)(?:\s+as\s+(\w+))?\s+from\s+["'](.+)["']/gm;
   const imports: ShaderImport[] = [];
 
   let match: RegExpExecArray | null;
@@ -43,7 +43,7 @@ export function parseImports(source: string): ShaderImport[] {
  */
 export function parseUniforms(source: string): ShaderUniform[] {
   const uniformRegex =
-    /^\s*uniform\s+(?:(?:highp|mediump|lowp)\s+)?(\w+)\s+(\w+)\s*;/gm;
+    /^[ \t]*uniform\s+(?:(?:highp|mediump|lowp)\s+)?(\w+)\s+(\w+)\s*;/gm;
   const uniforms: ShaderUniform[] = [];
 
   let match: RegExpExecArray | null;
@@ -74,7 +74,7 @@ export function parseFunctions(source: string): ShaderFunction[] {
     "void|float|int|uint|bool|vec[234]|ivec[234]|uvec[234]|bvec[234]|mat[234](?:x[234])?|sampler2D|samplerCube|sampler3D|sampler2DArray";
 
   const funcRegex = new RegExp(
-    `^\\s*(${returnTypes})\\s+(\\w+)\\s*\\(([^)]*)\\)\\s*\\{`,
+    `^[ \\t]*(${returnTypes})\\s+(\\w+)\\s*\\(([^)]*)\\)\\s*\\{`,
     "gm",
   );
 
