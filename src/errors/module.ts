@@ -1,4 +1,4 @@
-import { SandboxError } from "./index";
+import { SandboxError } from "./base";
 
 export class SandboxModuleNotFoundError extends SandboxError {
   constructor(public readonly moduleName: string) {

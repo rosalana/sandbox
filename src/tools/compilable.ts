@@ -11,7 +11,7 @@ import {
   ShaderUniform,
   WebGLVersion,
 } from "../types";
-import Module from "./module";
+import ModuleRegistry from "./module_registry";
 import {
   SandboxModuleMethodNotFoundError,
   SandboxShaderRequirementMismatchError,
@@ -81,7 +81,7 @@ export default class Compilable {
     if (!this.parsed) return;
 
     for (const imp of this.parsed.imports) {
-      const module = Module.resolve(imp.module);
+      const module = ModuleRegistry.resolve(imp.module);
       module.compile();
       const extraction = module.extract(imp.name);
 

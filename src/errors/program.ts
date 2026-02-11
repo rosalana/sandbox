@@ -1,4 +1,4 @@
-import { SandboxError } from "./index";
+import { SandboxError } from "./base";
 
 export class SandboxProgramError extends SandboxError {
   constructor(public readonly infoLog: string) {
