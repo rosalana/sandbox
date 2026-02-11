@@ -1,4 +1,3 @@
-import { defaultUniforms } from "../defaults";
 import {
   parseFunctions,
   parseGLSLVersion,
@@ -20,16 +19,16 @@ import {
 
 export default class Compilable {
   /** Original and compiled shader code */
-  public code: { original: string; compiled: string | null } = {
+  protected code: { original: string; compiled: string | null } = {
     original: "",
     compiled: null,
   };
 
   /** Parsed shader components */
-  public parsed: ShaderParseResult | null = null;
+  protected parsed: ShaderParseResult | null = null;
 
   /** Requirements that must be present in the shader */
-  public requirements: {
+  protected requirements: {
     uniforms: Map<string, ShaderUniform>;
     functions: Map<string, ShaderFunction>;
   } = {
@@ -39,10 +38,6 @@ export default class Compilable {
 
   constructor(source: string) {
     this.code.original = source;
-
-    defaultUniforms.forEach((type, name) => {
-      this.requirements.uniforms.set(name, { name, type, line: 0 });
-    });
   }
 
   /**
@@ -59,6 +54,7 @@ export default class Compilable {
     if (this.code.compiled) return this.code.compiled;
 
     this.parsed = this.parse(this.code.original);
+    console.log("Parsed shader:", this.parsed);
 
     // do the process..
     if (this.parsed.imports.length > 0) {
