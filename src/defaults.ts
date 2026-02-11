@@ -1,10 +1,10 @@
-import MathModule from "./shaders/modules/math.glsl?raw";
-import ColorModule from "./shaders/modules/color.glsl?raw";
-import EasingModule from "./shaders/modules/easing.glsl?raw";
-import EffectsModule from "./shaders/modules/effects.glsl?raw";
-import InteractionModule from "./shaders/modules/interaction.glsl?raw";
-import PhysicsModule from "./shaders/modules/physics.glsl?raw";
-import SimpleModule from "./shaders/modules/simple.glsl?raw";
+// import MathModule from "./shaders/modules/math.glsl?raw";
+// import ColorModule from "./shaders/modules/color.glsl?raw";
+// import EasingModule from "./shaders/modules/easing.glsl?raw";
+// import EffectsModule from "./shaders/modules/effects.glsl?raw";
+// import InteractionModule from "./shaders/modules/interaction.glsl?raw";
+// import PhysicsModule from "./shaders/modules/physics.glsl?raw";
+import SimpleModule from "./shaders/backup/simple.glsl?raw";
 import { GLSLType, ModuleDefinition, ShaderUniform } from "./types";
 
 /** Registry of all defined modules */
