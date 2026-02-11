@@ -120,7 +120,7 @@ export default class Compilable {
     for (const uniform of extraction.dependencies.uniforms) {
       const namespacedUniform: ShaderUniform = {
         ...uniform,
-        name: `${alias}_${uniform.name}`,
+        name: `${uniqueAlias}_${uniform.name}`,
       };
       this.requirements.uniforms.set(namespacedUniform.name, namespacedUniform);
     }
