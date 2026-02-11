@@ -111,7 +111,7 @@ export class Sandbox {
    * Get the list of available shader modules that can be used with `#import` in shader source.
    */
   static availableModules() {
-    return Module.available();
+    return ModuleRegistry.available();
   }
 
   /**

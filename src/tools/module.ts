@@ -45,19 +45,16 @@ export default class Module extends Compilable {
   }
 
   /**
-   * Get the list of available shader modules that can be use with index
-   */
-  static available() {
-    return ModuleRegistry.available();
-  }
-
-  /**
    * Get the module definition
    */
   getDefinition() {
+    this.compile(); // Ensure it's compiled to resolve any imports
     return {
       name: this.name,
-      source: this.original.source,
+      methods: this.compiled
+        .parse()
+        .functions.map((f) => f.name)
+        .filter((n) => n !== "main"),
       options: this.options,
     };
   }
