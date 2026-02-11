@@ -193,6 +193,17 @@ export type ShaderUniform = GLSLVariable & {
   line?: number;
 };
 
+type ShaderFunctionDependency = {
+  /** Name of the dependent */
+  name: string;
+  /** Type of dependency */
+  type: "function" | "uniform";
+  /** Line number where the dependent is used */
+  line?: number;
+  /** Character position in source where the dependent is used (for better error reporting) */
+  position?: number;
+}
+
 export type ShaderFunction = {
   /** Function name */
   name: string;
@@ -202,6 +213,8 @@ export type ShaderFunction = {
   params: GLSLVariable[];
   /** Function body (including braces) */
   body: string;
+  /** List of dependencies (functions or uniforms) this function has */
+  dependencies: ShaderFunctionDependency[];
   /** Line number where function is declared */
   line?: number;
 };
@@ -213,6 +226,8 @@ export type ShaderParseResult = {
   uniforms: ShaderUniform[];
   /** All functions declared in shader */
   functions: ShaderFunction[];
+  /** GLSL version */
+  version: WebGLVersion;
 };
 
 export interface ModuleDefinition {

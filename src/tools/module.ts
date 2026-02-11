@@ -1,5 +1,9 @@
 import { SandboxModuleMethodNotFoundError } from "../errors";
-import { ModuleDefinition, ModuleFunctionExtraction } from "../types";
+import {
+  ModuleDefinition,
+  ModuleFunctionExtraction,
+  ShaderFunction,
+} from "../types";
 import Compilable from "./compilable";
 import ModuleRegistry from "./module_registry";
 
@@ -62,12 +66,16 @@ export default class Module extends Compilable {
   extract(name: string): ModuleFunctionExtraction {
     this.compile(); // compilation is required
 
-    const method = this.parsed!.functions.find((f) => f.name === name);
-    const uniforms = this.parsed!.uniforms;
+    const content = this.parser.parse();
+
+    // the method we want
+    const method = content.functions.find((f) => f.name === name);
 
     if (!method) {
       throw new SandboxModuleMethodNotFoundError(this.name, name);
     }
+
+    const uniforms = content.uniforms;
 
     return {
       function: method,

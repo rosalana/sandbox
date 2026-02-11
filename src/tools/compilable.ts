@@ -1,11 +1,4 @@
 import {
-  parseFunctions,
-  parseGLSLVersion,
-  parseImports,
-  parseUniforms,
-} from "../helpers/shader_parsing";
-import {
-  ModuleFunctionExtraction,
   ShaderFunction,
   ShaderParseResult,
   ShaderUniform,
@@ -16,6 +9,7 @@ import {
   SandboxModuleMethodNotFoundError,
   SandboxShaderRequirementMismatchError,
 } from "../errors";
+import Parser from "./parser";
 
 export default class Compilable {
   /** Original and compiled shader code */
@@ -24,8 +18,8 @@ export default class Compilable {
     compiled: null,
   };
 
-  /** Parsed shader components */
-  protected parsed: ShaderParseResult | null = null;
+  /** Parser instance for the shader source */
+  protected parser: Parser;
 
   /** Requirements that must be present in the shader */
   protected requirements: {
@@ -38,13 +32,14 @@ export default class Compilable {
 
   constructor(source: string) {
     this.code.original = source;
+    this.parser = new Parser(source);
   }
 
   /**
    * Detect WebGL version from shader source
    */
-  version(source: string = this.code.original): WebGLVersion {
-    return parseGLSLVersion(source);
+  version(): WebGLVersion {
+    return this.parser.version();
   }
 
   /**
@@ -53,10 +48,10 @@ export default class Compilable {
   compile(): string {
     if (this.code.compiled) return this.code.compiled;
 
-    this.parsed = this.parse(this.code.original);
+    const content = this.parser.parse();
 
     // do the process..
-    if (this.parsed.imports.length > 0) {
+    if (content.imports.length > 0) {
       this.processImports();
     }
 
@@ -65,21 +60,10 @@ export default class Compilable {
     return this.code.compiled || this.code.original;
   }
 
-  /**
-   * Parse shader source to extract imports, uniforms, and functions.
-   */
-  private parse(source: string = this.code.original): ShaderParseResult {
-    return {
-      imports: parseImports(source),
-      uniforms: parseUniforms(source),
-      functions: parseFunctions(source),
-    };
-  }
-
   private processImports(): void {
-    if (!this.parsed) return;
+    const content = this.parser.parse();
 
-    for (const imp of this.parsed.imports) {
+    for (const imp of content.imports) {
       const module = ModuleRegistry.resolve(imp.module);
       module.compile();
       const extraction = module.extract(imp.name);
@@ -104,17 +88,16 @@ export default class Compilable {
   }
 
   private checkUniformsPresence(): ShaderUniform[] {
-    if (!this.parsed) return [];
-
+    const content = this.parser.parse();
     const missing: ShaderUniform[] = [];
     const required = this.requirements.uniforms;
 
     for (const name of required.keys()) {
-      if (!this.parsed.uniforms.some((u) => u.name === name)) {
+      if (!content.uniforms.some((u) => u.name === name)) {
         missing.push(required.get(name)!);
       }
 
-      const mismatch = this.parsed.uniforms.find(
+      const mismatch = content.uniforms.find(
         (u) => u.name === name && u.type !== required.get(name)?.type,
       );
       if (mismatch) {
@@ -132,17 +115,16 @@ export default class Compilable {
 
   /** @todo inconsistency type in requiredUniforms */
   private checkFunctionsPresence(): ShaderFunction[] {
-    if (!this.parsed) return [];
-
+    const content = this.parser.parse();
     const missing: ShaderFunction[] = [];
     const required = this.requirements.functions;
 
     for (const name of required.keys()) {
-      if (!this.parsed.functions.some((f) => f.name === name)) {
+      if (!content.functions.some((f) => f.name === name)) {
         missing.push(required.get(name)!);
       }
 
-      const mismatch = this.parsed.functions.find(
+      const mismatch = content.functions.find(
         (f) => f.name === name && f.type !== required.get(name)?.type,
       );
       if (mismatch) {
