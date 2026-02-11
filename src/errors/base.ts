@@ -7,6 +7,7 @@ export type SandboxErrorCode =
   | "UNKNOWN_ERROR";
 
 export class SandboxError extends Error {
+  public readonly name: string = "SandboxError";
   constructor(
     message: string,
     public readonly code: SandboxErrorCode,
