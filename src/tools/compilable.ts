@@ -8,7 +8,7 @@ import {
 import ModuleRegistry from "./module_registry";
 import {
   SandboxShaderRequirementMismatchError,
-  SandboxShaderWithoutMainFunctionError,
+  SandboxShaderWithoutFunctionError,
 } from "../errors";
 import Parser from "./parser";
 import { defaultUniforms } from "../defaults";
@@ -334,7 +334,7 @@ export default class Compilable {
       insertAfterLine = first.line - 2;
     } else {
       // Otherwise, this looks like a shader with no functions - which is invalid since it must have a main() function
-      throw new SandboxShaderWithoutMainFunctionError();
+      throw new SandboxShaderWithoutFunctionError();
     }
 
     let charPos = 0;

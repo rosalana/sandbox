@@ -1,4 +1,7 @@
-import { SandboxModuleMethodNotFoundError } from "../errors";
+import {
+  SandboxAtemptedToImportMainFunctionError,
+  SandboxModuleMethodNotFoundError,
+} from "../errors";
 import {
   ModuleDefinition,
   ModuleFunctionExtraction,
@@ -65,6 +68,10 @@ export default class Module extends Compilable {
   extract(name: string): ModuleFunctionExtraction {
     // Compile first to resolve any nested imports
     this.compile();
+
+    if (name === "main") {
+      throw new SandboxAtemptedToImportMainFunctionError(this.name);
+    }
 
     const content = this.compiled.parse();
 
