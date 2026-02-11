@@ -200,7 +200,7 @@ type ShaderFunctionDependency = {
   type: "function" | "uniform";
   /** Character index from start of the function body for rewriting purposes */
   index?: number;
-}
+};
 
 export type ShaderFunction = {
   /** Function name */
@@ -238,6 +238,11 @@ export interface ModuleDefinition {
 }
 
 export type ModuleFunctionExtraction = {
+  /** Extracted function definition */
   function: ShaderFunction;
-  uniforms: ShaderUniform[];
+  /** All dependencies (functions and uniforms) required by this function */
+  dependencies: {
+    functions: ShaderFunction[];
+    uniforms: ShaderUniform[];
+  };
 };
