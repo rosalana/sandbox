@@ -62,7 +62,7 @@ export default class Parser {
   private detectImports() {
     const validRegex =
       /^[ \t]*#import\s+(\w+)(?:\s+as\s+(\w+))?\s+from\s+["'](.+)["']/gm;
-    const looseRegex = /^[ \t]*#?import\b/gm;
+    const looseRegex = /^[ \t]*[^\w\s]?import\b/gm;
 
     const imports: ShaderImport[] = [];
     const validLines = new Set<number>();
@@ -91,21 +91,31 @@ export default class Parser {
     let looseMatch: RegExpExecArray | null;
     while ((looseMatch = looseRegex.exec(this.source)) !== null) {
       const line =
-        (this.source.substring(0, looseMatch.index).match(/\n/g) || []).length + 1;
+        (this.source.substring(0, looseMatch.index).match(/\n/g) || []).length +
+        1;
 
       if (validLines.has(line)) continue;
 
       const lineText = this.source.split("\n")[line - 1].trim();
-      throw new SandboxShaderImportSyntaxError(line, this.diagnoseImport(lineText));
+      throw new SandboxShaderImportSyntaxError(
+        line,
+        this.diagnoseImport(lineText),
+      );
     }
 
     return imports;
   }
 
   private diagnoseImport(line: string): string {
+    // @import, $import, !import etc. — wrong prefix character
+    const wrongPrefix = line.match(/^([^\w\s])import\b/);
+    if (wrongPrefix && wrongPrefix[1] !== "#") {
+      return `Invalid prefix '${wrongPrefix[1]}'. Expected: #import <function> from '<module>'`;
+    }
+
     // import blur from 'module' — missing # prefix
     if (/^import\b/.test(line)) {
-      return `Missing '#' prefix. Expected: #${line}`;
+      return `Missing '#' prefix. Expected: #import <function> from '<module>'`;
     }
 
     // #import from 'module' — missing function name
@@ -119,7 +129,10 @@ export default class Parser {
     }
 
     // #import blur as — missing alias name (also catches #import blur as from 'module')
-    if (/^#import\s+\w+\s+as\s*$/.test(line) || /^#import\s+\w+\s+as\s+from\b/.test(line)) {
+    if (
+      /^#import\s+\w+\s+as\s*$/.test(line) ||
+      /^#import\s+\w+\s+as\s+from\b/.test(line)
+    ) {
       return `Missing alias name after 'as'. Expected: #import ${line.split(/\s+/)[1]} as <alias> from '<module>'`;
     }
 
