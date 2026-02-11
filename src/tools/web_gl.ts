@@ -7,7 +7,7 @@ import type {
   WebGLContext,
   WebGLVersion,
 } from "../types";
-import { SandboxContextError, SandboxError } from "../errors";
+import { SandboxError, SandboxWebGLNotSupportedError } from "../errors";
 import Clock from "./clock";
 import Geometry from "./geometry";
 import Program from "./program";
@@ -125,7 +125,7 @@ export default class WebGL {
     }
 
     // WebGL not supported - fatal error
-    const error = new SandboxContextError("not_supported");
+    const error = new SandboxWebGLNotSupportedError();
     this.options.onError(error);
     throw error;
   }

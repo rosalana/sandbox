@@ -1,7 +1,7 @@
 import type { WebGLContext, WebGLVersion } from "../types";
 import {
   SandboxProgramError,
-  SandboxShaderCompilationError,
+  SandboxGLSLShaderCompilationError,
   SandboxShaderVersionMismatchError,
 } from "../errors";
 
@@ -140,7 +140,7 @@ export default class Program {
 
     const shader = gl.createShader(glType);
     if (!shader) {
-      throw new SandboxShaderCompilationError(
+      throw new SandboxGLSLShaderCompilationError(
         type,
         source,
         "Failed to create shader object",
@@ -155,7 +155,7 @@ export default class Program {
     if (!compiled) {
       const infoLog = gl.getShaderInfoLog(shader) || "Unknown error";
       gl.deleteShader(shader);
-      throw new SandboxShaderCompilationError(type, source, infoLog);
+      throw new SandboxGLSLShaderCompilationError(type, source, infoLog);
     }
 
     return shader;

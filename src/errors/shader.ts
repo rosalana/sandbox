@@ -12,7 +12,7 @@ export class SandboxShaderVersionMismatchError extends SandboxError {
   }
 }
 
-export class SandboxShaderGLSLCompilationError extends SandboxError {
+export class SandboxGLSLShaderCompilationError extends SandboxError {
   public readonly lines: number[];
 
   constructor(
@@ -20,7 +20,7 @@ export class SandboxShaderGLSLCompilationError extends SandboxError {
     public readonly source: string,
     public readonly infoLog: string,
   ) {
-    const lines = SandboxShaderGLSLCompilationError.parseErrorLines(infoLog);
+    const lines = SandboxGLSLShaderCompilationError.parseErrorLines(infoLog);
     const lineInfo = lines.length > 0 ? ` at line(s): ${lines.join(", ")}` : "";
 
     super(
