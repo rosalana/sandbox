@@ -24,14 +24,6 @@ modules.set("sandbox", { name: "sandbox", source: SimpleModule });
  * Global uniforms that are automatically provided by Sandbox.
  * These uniforms will NOT be renamed during preprocessing.
  */
-export const uniforms = new Set<string>([
-  "u_resolution",
-  "u_time",
-  "u_delta",
-  "u_mouse",
-  "u_frame",
-]);
-
 export const defaultUniforms = new Map<ShaderUniform['name'], ShaderUniform['type']>([
   ["u_resolution", "vec2"],
   ["u_time", "float"],
