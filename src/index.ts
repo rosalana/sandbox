@@ -15,7 +15,7 @@ import Program from "./tools/program";
 import Module from "./tools/module";
 import ModuleRegistry from "./tools/module_registry";
 import Shader from "./tools/shader";
-import { modules as defaultModules } from "./defaults";
+import { modules as defaultModules, modules } from "./defaults";
 
 export * from "./types";
 export * from "./errors";
@@ -24,7 +24,6 @@ import WebGL1_Vert from "./shaders/webgl1_shader.vert?raw";
 import WebGL1_Frag from "./shaders/webgl1_shader.frag?raw";
 import WebGL2_Vert from "./shaders/webgl2_shader.vert?raw";
 import WebGL2_Frag from "./shaders/webgl2_shader.frag?raw";
-import Test_Frag from "./shaders/test.frag?raw";
 
 /**
  * Sandbox - A lightweight WebGL wrapper for shader effects.
@@ -96,15 +95,19 @@ export class Sandbox {
   /**
    * Define a shader module that can be imported in shader source with `#import <function> from "module_name"`.
    * @example
-   * Sandbox.defineModule("my_module", source);
+   * Sandbox.defineModule("my_module", source, { options });
    * // Then in shader:
    * // #import myFunc from "my_module"
    * // void main() {
    * //   myFunc();
    * // }
    */
-  static defineModule(definition: ModuleDefinition): void {
-    Module.define(definition);
+  static defineModule(
+    name: ModuleDefinition["name"],
+    source: ModuleDefinition["source"],
+    options: ModuleDefinition["options"] = {},
+  ): void {
+    Module.define({ name, source, options });
   }
 
   /**
@@ -143,6 +146,7 @@ export class Sandbox {
       onBeforeRender: null,
       onAfterRender: null,
       uniforms: {},
+      modules: {},
     };
 
     if (options?.vertex) this.usingCustomVertex = true;
@@ -371,6 +375,16 @@ export class Sandbox {
     } else {
       return this.engine.onAfterHooks.add(callback);
     }
+  }
+
+  /**
+   * Runtime configure the module behavior
+   * @example
+   * sandbox.module("my_module").set({ intensity: 0.5 });
+   */
+  module(name: string) {
+    // modules that are currently running has to be stored in the engine!
+    // return this.engine.module(name);
   }
 
   /**

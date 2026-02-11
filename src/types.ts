@@ -28,6 +28,8 @@ export interface SandboxOptions {
   onAfterRender?: HookCallback | null;
   /** Initial uniforms to set */
   uniforms?: UniformSchema;
+  /** Configure used modules behavior */
+  modules?: Record<string, ModuleMethodOption>;
 }
 
 /** Resolved sandbox options with all defaults applied */
@@ -233,9 +235,15 @@ export interface ModuleDefinition {
   name: string;
   /** GLSL source code containing functions */
   source: string;
-  /** Optional options for module */
-  options?: Record<string, any>; // add TS for this
+  /**
+   * Options per-function if the module has custom uniforms that can be used to configure methods behavior.
+   * The key is the function name.
+   * For each function set the option name and link it to a uniform with optional default value.
+   */
+  options?: Record<string, Record<string, ModuleMethodOption>>;
 }
+
+export type ModuleMethodOption = { uniform: string; default?: AnyUniformValue };
 
 export type ModuleFunctionExtraction = {
   /** Extracted function definition */
