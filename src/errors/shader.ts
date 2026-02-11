@@ -75,3 +75,15 @@ export class SandboxShaderWithoutMainFunctionError extends SandboxError {
     );
   }
 }
+
+export class SandboxShaderImportSyntaxError extends SandboxError {
+  constructor(
+    public readonly line: number,
+    public readonly details: string,
+  ) {
+    super(
+      `Syntax error in shader import statement at line ${line}: ${details}`,
+      "SHADER_ERROR",
+    );
+  }
+}

@@ -7,6 +7,7 @@ import {
   ShaderUniform,
   WebGLVersion,
 } from "../types";
+import { SandboxShaderImportSyntaxError } from "../errors";
 
 export default class Parser {
   public parsed: ShaderParseResult | null = null;
@@ -59,19 +60,25 @@ export default class Parser {
   }
 
   private detectImports() {
-    const importRegex =
+    const validRegex =
       /^[ \t]*#import\s+(\w+)(?:\s+as\s+(\w+))?\s+from\s+["'](.+)["']/gm;
-    const imports: ShaderImport[] = [];
+    const looseRegex = /^[ \t]*#?import\b/gm;
 
+    const imports: ShaderImport[] = [];
+    const validLines = new Set<number>();
+
+    // Collect valid imports
     let match: RegExpExecArray | null;
     let lineNumber = 1;
     let lastIndex = 0;
 
-    while ((match = importRegex.exec(this.source)) !== null) {
+    while ((match = validRegex.exec(this.source)) !== null) {
       lineNumber += (
         this.source.substring(lastIndex, match.index).match(/\n/g) || []
       ).length;
       lastIndex = match.index;
+
+      validLines.add(lineNumber);
 
       const name = match[1];
       const alias = match[2] || match[1];
@@ -80,7 +87,55 @@ export default class Parser {
       imports.push({ name, alias, module, line: lineNumber });
     }
 
+    // Find any #import lines that didn't match valid syntax
+    let looseMatch: RegExpExecArray | null;
+    while ((looseMatch = looseRegex.exec(this.source)) !== null) {
+      const line =
+        (this.source.substring(0, looseMatch.index).match(/\n/g) || []).length + 1;
+
+      if (validLines.has(line)) continue;
+
+      const lineText = this.source.split("\n")[line - 1].trim();
+      throw new SandboxShaderImportSyntaxError(line, this.diagnoseImport(lineText));
+    }
+
     return imports;
+  }
+
+  private diagnoseImport(line: string): string {
+    // import blur from 'module' — missing # prefix
+    if (/^import\b/.test(line)) {
+      return `Missing '#' prefix. Expected: #${line}`;
+    }
+
+    // #import from 'module' — missing function name
+    if (/^#import\s+from\b/.test(line)) {
+      return `Missing function name. Expected: #import <function> from '<module>'`;
+    }
+
+    // #import blur — missing 'from'
+    if (/^#import\s+\w+\s*$/.test(line)) {
+      return `Missing 'from' clause. Expected: #import ${line.split(/\s+/)[1]} from '<module>'`;
+    }
+
+    // #import blur as — missing alias name (also catches #import blur as from 'module')
+    if (/^#import\s+\w+\s+as\s*$/.test(line) || /^#import\s+\w+\s+as\s+from\b/.test(line)) {
+      return `Missing alias name after 'as'. Expected: #import ${line.split(/\s+/)[1]} as <alias> from '<module>'`;
+    }
+
+    // #import blur as glow — missing 'from'
+    if (/^#import\s+\w+\s+as\s+\w+\s*$/.test(line)) {
+      const parts = line.split(/\s+/);
+      return `Missing 'from' clause. Expected: #import ${parts[1]} as ${parts[3]} from '<module>'`;
+    }
+
+    // #import blur from module — missing quotes around module name
+    if (/^#import\s+\w+(?:\s+as\s+\w+)?\s+from\s+\w+/.test(line)) {
+      const fromMatch = line.match(/from\s+(\S+)/);
+      return `Module name must be quoted. Expected: from '${fromMatch?.[1]}'`;
+    }
+
+    return `Invalid syntax. Expected: #import <function> from '<module>'`;
   }
 
   private detectUniforms(): ShaderUniform[] {
