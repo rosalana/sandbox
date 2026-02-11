@@ -230,6 +230,8 @@ const sandbox = new Sandbox(canvas, {
 
 #### `use`
 
+Use používat nebudeme pokud to nebude vyloženě nutné. Je to řádek, který runtime nemá žádný vliv.
+
 Explicitní deklarace modulů použitých v tomto sandboxu. Slouží pro **type-safety** — TypeScript z pole `use` inferuje, jaké klíče a option typy jsou povolené v `modules`.
 
 #### `modules`
