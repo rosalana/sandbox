@@ -42,7 +42,7 @@ export default class Parser {
   /**
    * Change the shader source and reset the parsed result
    */
-  changeSource(newSource: string) {
+  setSource(newSource: string) {
     this.source = newSource;
     this.parsed = null;
   }

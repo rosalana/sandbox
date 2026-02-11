@@ -54,7 +54,7 @@ export default class Module extends Compilable {
   getDefinition() {
     return {
       name: this.name,
-      source: this.code.original,
+      source: this.original.source,
       options: this.options,
     };
   }
@@ -67,7 +67,7 @@ export default class Module extends Compilable {
     // Compile first to resolve any nested imports
     this.compile();
 
-    const content = this.getCompiledContent();
+    const content = this.compiled.parse();
 
     // Find the requested method
     const method = content.functions.find((f) => f.name === methodName);

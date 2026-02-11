@@ -20,14 +20,13 @@ type RewriteOp = {
 };
 
 export default class Compilable {
-  /** Original and compiled shader code */
-  protected code: { original: string; compiled: string | null } = {
-    original: "",
-    compiled: null,
-  };
+  /** Flag to track if the shader has been compiled */
+  protected isCompiled: boolean = false;
 
-  /** Parser instance for the shader source */
-  protected parser: Parser;
+  /** Original and compiled shader parsers */
+  protected original: Parser;
+  /** Compiled parser will be updated with rewritten source after processing imports */
+  protected compiled: Parser;
 
   /** Collected requirements from imports */
   protected requirements: {
@@ -39,35 +38,24 @@ export default class Compilable {
   };
 
   constructor(source: string) {
-    this.code.original = source;
-    this.parser = new Parser(source);
+    this.original = new Parser(source);
+    this.compiled = new Parser(source);
   }
 
   /**
    * Detect WebGL version from shader source
    */
   version(): WebGLVersion {
-    return this.parser.version();
-  }
-
-  /**
-   * Get parsed content of the compiled code
-   */
-  getCompiledContent(): ShaderParseResult {
-    if (!this.code.compiled) {
-      this.compile();
-    }
-    const compiledParser = new Parser(this.code.compiled!);
-    return compiledParser.parse();
+    return this.original.version();
   }
 
   /**
    * Compile the shader source, resolving all imports
    */
   compile(): string {
-    if (this.code.compiled) return this.code.compiled;
+    if (this.isCompiled) return this.compiled.source;
 
-    const content = this.parser.parse();
+    const content = this.original.parse();
 
     // Process imports if any
     if (content.imports.length > 0) {
@@ -75,16 +63,17 @@ export default class Compilable {
     }
 
     // Build final shader
-    this.code.compiled = this.build();
+    this.compiled.setSource(this.build());
+    this.isCompiled = true;
 
-    return this.code.compiled;
+    return this.compiled.source;
   }
 
   /**
    * Process all #import directives
    */
   private processImports(): void {
-    const content = this.parser.parse();
+    const content = this.original.parse();
 
     for (const imp of content.imports) {
       const module = ModuleRegistry.resolve(imp.module);
@@ -204,8 +193,8 @@ export default class Compilable {
    * Build the final compiled shader
    */
   private build(): string {
-    const content = this.parser.parse();
-    let result = this.code.original;
+    const content = this.original.parse();
+    let result = this.original.source;
 
     // 1. Remove #import lines
     result = this.removeImportLines(result, content);
@@ -229,7 +218,10 @@ export default class Compilable {
   /**
    * Remove #import lines from shader source
    */
-  private removeImportLines(source: string, content: ShaderParseResult): string {
+  private removeImportLines(
+    source: string,
+    content: ShaderParseResult,
+  ): string {
     const lines = source.split("\n");
     const importLineNumbers = new Set(content.imports.map((i) => i.line));
 
@@ -320,9 +312,7 @@ export default class Compilable {
    * Generate GLSL code for a function
    */
   private generateFunctionCode(func: ShaderFunction): string {
-    const params = func.params
-      .map((p) => `${p.type} ${p.name}`)
-      .join(", ");
+    const params = func.params.map((p) => `${p.type} ${p.name}`).join(", ");
 
     return `${func.type} ${func.name}(${params}) ${func.body}`;
   }
@@ -331,7 +321,7 @@ export default class Compilable {
    * Check which required uniforms are missing from the original shader
    */
   private checkUniformsPresence(): ShaderUniform[] {
-    const content = this.parser.parse();
+    const content = this.original.parse();
     const missing: ShaderUniform[] = [];
     const required = this.requirements.uniforms;
 
@@ -360,7 +350,7 @@ export default class Compilable {
    * Check which required functions are missing from the original shader
    */
   private checkFunctionsPresence(): ShaderFunction[] {
-    const content = this.parser.parse();
+    const content = this.original.parse();
     const missing: ShaderFunction[] = [];
     const required = this.requirements.functions;
 
