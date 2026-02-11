@@ -143,7 +143,7 @@ export default class Parser {
       const params = this.parseParams(paramsStr);
 
       const fCalls = this.findFunctionCalls(body);
-      const uCalls = this.findUniformCalls(body);
+      const uCalls = this.findUniformCalls(body, uniforms);
 
       functions.push({
         name,
@@ -245,10 +245,10 @@ export default class Parser {
   }
 
   private findFunctionCalls(body: string): ShaderFunctionDependency[] {
-    //
+    return [];
   }
 
-  private findUniformCalls(body: string): ShaderFunctionDependency[] {
-    //
+  private findUniformCalls(body: string, uniforms: ShaderUniform[]): ShaderFunctionDependency[] {
+    return [];
   }
 }
