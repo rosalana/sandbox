@@ -10,6 +10,7 @@ import type {
 import {
   SandboxError,
   SandboxOnLoadCallbackError,
+  SandboxShaderVersionMismatchError,
   SandboxWebGLNotSupportedError,
 } from "../errors";
 import Clock from "./clock";
@@ -205,16 +206,21 @@ export default class WebGL {
    * Compile and link shaders.
    * Errors are handled via onError callback, never thrown.
    */
-  shader(vertex: string, fragment: string): this {
+  shader(vertex: Shader, fragment: Shader): this {
     try {
-      // Compile Sandbox syntax shaders to WebGL GLSL
-      const vert = new Shader(vertex).compile();
-      const frag = new Shader(fragment).compile();
+      // Check version compatibility
+      if (vertex.version() !== fragment.version()) {
+        throw new SandboxShaderVersionMismatchError(
+          vertex.version(),
+          fragment.version(),
+        );
+      }
 
-      this._program.compile(vert, frag);
+      // Compile and link program
+      this._program.compile(vertex.compile(), fragment.compile());
 
       // Update version based on shaders
-      this._version = this._program.getVersion();
+      this._version = fragment.version();
 
       // Link attributes to geometry
       this._geometry.linkAttributes(this._program);

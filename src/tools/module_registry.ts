@@ -66,9 +66,9 @@ export default class ModuleRegistry {
   }
 
   /**
-   * Destroy the instance by clearing all registered modules.
+   * Clear all registered modules from the registry.
    */
-  static destroy(): void {
+  static clear(): void {
     this.modules.clear();
   }
 }

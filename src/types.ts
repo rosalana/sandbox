@@ -1,4 +1,5 @@
 import type { SandboxError } from "./errors";
+import Shader from "./tools/shader";
 
 /** Sandbox configuration options */
 export interface SandboxOptions {
@@ -33,7 +34,10 @@ export interface SandboxOptions {
 }
 
 /** Resolved sandbox options with all defaults applied */
-export type ResolvedSandboxOptions = Required<SandboxOptions>;
+export type ResolvedSandboxOptions = Omit<Required<SandboxOptions>, "vertex" | "fragment"> & {
+  vertex: Shader;
+  fragment: Shader;
+};
 
 /** WebGL version (1 = WebGL, 2 = WebGL2) */
 export type WebGLVersion = 1 | 2;

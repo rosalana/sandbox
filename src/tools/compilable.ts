@@ -50,6 +50,22 @@ export default class Compilable {
   }
 
   /**
+   * Get the original source code of the shader
+   */
+  source(): string {
+    return this.original.source;
+  }
+
+  /**
+   * Force recompilation of the shader, reprocessing all imports and rewrites
+   * It's not necessary to call this manually because the state gets lost whenever the shader is switched out and back in.
+   */
+  recompile(): string {
+    this.isCompiled = false;
+    return this.compile();
+  }
+
+  /**
    * Compile the shader source, resolving all imports
    */
   compile(): string {
@@ -154,7 +170,7 @@ export default class Compilable {
 
       if (dep.type === "uniform" && uniformNames.has(dep.name)) {
         if (defaultUniforms.has(dep.name)) continue;
-        
+
         ops.push({
           index: dep.index,
           oldText: dep.name,
@@ -219,7 +235,8 @@ export default class Compilable {
     if (generatedUniformsCode) {
       result =
         result.slice(0, insertionPointForUniforms) +
-        generatedUniformsCode + `\n` +
+        generatedUniformsCode +
+        `\n` +
         result.slice(insertionPointForUniforms);
     }
 

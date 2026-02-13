@@ -11,7 +11,6 @@ import { SandboxError } from "./errors";
 
 import Listener from "./tools/listener";
 import WebGL from "./tools/web_gl";
-import Program from "./tools/program";
 import Module from "./tools/module";
 import ModuleRegistry from "./tools/module_registry";
 import Shader from "./tools/shader";
@@ -127,8 +126,8 @@ export class Sandbox {
 
   private resolveOptions(options?: SandboxOptions): ResolvedSandboxOptions {
     const defaults = {
-      vertex: WebGL1_Vert,
-      fragment: WebGL1_Frag,
+      vertex: new Shader(WebGL1_Vert),
+      fragment: new Shader(WebGL1_Frag),
       autoplay: true,
       pauseWhenHidden: true,
       dpr: "auto" as "auto",
@@ -153,19 +152,28 @@ export class Sandbox {
 
     // If only vertex is provided, set matching fragment
     if (options?.vertex && !options?.fragment) {
-      const version = Program.detectVersion(options.vertex);
-      defaults.vertex = options.vertex;
-      defaults.fragment = version === 2 ? WebGL2_Frag : WebGL1_Frag;
+      defaults.vertex = new Shader(options.vertex);
+      const version = defaults.vertex.version();
+      defaults.fragment = new Shader(version === 2 ? WebGL2_Frag : WebGL1_Frag);
     }
 
     // If only fragment is provided, set matching vertex
     if (options?.fragment && !options?.vertex) {
-      const version = Program.detectVersion(options.fragment);
-      defaults.fragment = options.fragment;
-      defaults.vertex = version === 2 ? WebGL2_Vert : WebGL1_Vert;
+      defaults.fragment = new Shader(options.fragment);
+      const version = defaults.fragment.version();
+      defaults.vertex = new Shader(version === 2 ? WebGL2_Vert : WebGL1_Vert);
     }
 
-    return { ...defaults, ...options };
+    // If both provided make them as class instances
+    if (options?.vertex && options?.fragment) {
+      defaults.vertex = new Shader(options.vertex);
+      defaults.fragment = new Shader(options.fragment);
+    }
+
+    // Clean up vertex and fragment from options before merging
+    const { vertex, fragment, ...restOptions } = options || {};
+
+    return { ...defaults, ...restOptions };
   }
 
   private setupListeners(): void {
@@ -306,8 +314,8 @@ export class Sandbox {
    */
   setShader(vertex: string, fragment: string): this {
     // Update options
-    this.options.vertex = vertex;
-    this.options.fragment = fragment;
+    this.options.vertex = new Shader(vertex);
+    this.options.fragment = new Shader(fragment);
 
     // Mark as custom shader
     this.usingCustomVertex = true;
@@ -323,16 +331,17 @@ export class Sandbox {
    */
   setFragment(fragment: string): this {
     // Detect versions
-    const fragVersion = Program.detectVersion(fragment);
-    const vertVersion = Program.detectVersion(this.options.vertex);
+    const frag = new Shader(fragment);
+    const fragVersion = frag.version();
+    const vertVersion = this.options.vertex.version();
 
     // Update options
-    this.options.fragment = fragment;
+    this.options.fragment = frag;
 
     if (fragVersion !== vertVersion) {
       if (!this.usingCustomVertex) {
         // Auto-switch only if not using custom vertex shader
-        this.options.vertex = fragVersion === 2 ? WebGL2_Vert : WebGL1_Vert;
+        this.options.vertex = new Shader(fragVersion === 2 ? WebGL2_Vert : WebGL1_Vert);
       }
     }
 
@@ -344,14 +353,14 @@ export class Sandbox {
    * Get current fragment shader source.
    */
   getFragment(): string {
-    return this.options.fragment;
+    return this.options.fragment.source();
   }
 
   /**
    * Get current vertex shader source.
    */
   getVertex(): string {
-    return this.options.vertex;
+    return this.options.vertex.source();
   }
 
   /**
