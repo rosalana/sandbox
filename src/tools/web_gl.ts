@@ -221,7 +221,7 @@ export default class WebGL {
       }
 
       // Compile and link program
-      this._program.compile(vertex.compile(), fragment.compile());
+      this._program.compile(vertex.source(), fragment.compile());
 
       // Update version based on shaders
       this._version = fragment.version();
