@@ -1,12 +1,12 @@
 import Compilable from "./compilable";
-import { defaultUniforms } from "../defaults";
+import { uniforms as UNIFORMS } from "../globals";
 
 export default class Shader extends Compilable {
   constructor(source: string) {
     super(source);
 
     // Add default uniforms to requirements
-    defaultUniforms.forEach((type, name) => {
+    UNIFORMS.forEach((type, name) => {
       this.requirements.uniforms.set(name, { name, type, line: 0 });
     });
   }

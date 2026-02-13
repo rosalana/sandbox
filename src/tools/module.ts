@@ -9,7 +9,7 @@ import {
   ShaderUniform,
 } from "../types";
 import Compilable from "./compilable";
-import ModuleRegistry from "./module_registry";
+import { modules as MODULES } from "../globals";
 
 export default class Module extends Compilable {
   public name: ModuleDefinition["name"];
@@ -32,7 +32,7 @@ export default class Module extends Compilable {
     const { name, source, options } = definition;
 
     const module = new Module(name, source, options);
-    ModuleRegistry.register(name, module);
+    MODULES.register(name, module);
 
     return module;
   }
@@ -41,7 +41,7 @@ export default class Module extends Compilable {
    * Resolve a module by name from the registry, throwing an error if not found
    */
   static resolve(name: string): Module {
-    return ModuleRegistry.resolve(name);
+    return MODULES.resolve(name);
   }
 
   /**

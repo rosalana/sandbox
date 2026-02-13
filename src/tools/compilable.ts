@@ -5,13 +5,13 @@ import {
   ShaderUniform,
   WebGLVersion,
 } from "../types";
-import ModuleRegistry from "./module_registry";
 import {
   SandboxShaderRequirementMismatchError,
   SandboxShaderWithoutFunctionError,
 } from "../errors";
 import Parser from "./parser";
-import { defaultUniforms } from "../defaults";
+import { uniforms as UNIFORMS } from "../globals";
+import { modules as MODULES } from "../globals";
 
 type RewriteOp = {
   index: number;
@@ -92,7 +92,7 @@ export default class Compilable {
     const content = this.original.parse();
 
     for (const imp of content.imports) {
-      const module = ModuleRegistry.resolve(imp.module);
+      const module = MODULES.resolve(imp.module);
       const extraction = module.extract(imp.name);
 
       // Rewrite and collect requirements with the alias as namespace
@@ -135,7 +135,7 @@ export default class Compilable {
 
     // Collect uniforms with namespaced names
     for (const uniform of extraction.dependencies.uniforms) {
-      if (defaultUniforms.has(uniform.name)) continue;
+      if (UNIFORMS.has(uniform.name)) continue;
 
       const namespacedUniform: ShaderUniform = {
         ...uniform,
@@ -169,7 +169,7 @@ export default class Compilable {
       if (dep.index === undefined) continue;
 
       if (dep.type === "uniform" && uniformNames.has(dep.name)) {
-        if (defaultUniforms.has(dep.name)) continue;
+        if (UNIFORMS.has(dep.name)) continue;
 
         ops.push({
           index: dep.index,

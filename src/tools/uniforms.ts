@@ -6,7 +6,7 @@ import type {
   WebGLContext,
 } from "../types";
 import Uniform from "./uniform";
-import { defaultUniforms } from "../defaults";
+import { uniforms as UNIFORMS } from "../globals";
 
 /**
  * Manages a collection of uniforms with fluent API.
@@ -116,7 +116,7 @@ export default class Uniforms {
       return this;
     }
 
-    for (const name of defaultUniforms.keys()) {
+    for (const name of UNIFORMS.keys()) {
       const uniform = this.uniforms.get(name);
       if (uniform) {
         uniform.upload(this.gl, this.program);

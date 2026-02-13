@@ -12,9 +12,8 @@ import { SandboxError } from "./errors";
 import Listener from "./tools/listener";
 import WebGL from "./tools/web_gl";
 import Module from "./tools/module";
-import ModuleRegistry from "./tools/module_registry";
 import Shader from "./tools/shader";
-import { modules as defaultModules, modules } from "./defaults";
+import { modules as MODULES } from "./globals";
 
 export * from "./types";
 export * from "./errors";
@@ -113,7 +112,7 @@ export class Sandbox {
    * Get the list of available shader modules that can be used with `#import` in shader source.
    */
   static availableModules() {
-    return ModuleRegistry.available();
+    return MODULES.available();
   }
 
   /**
@@ -509,10 +508,3 @@ export class Sandbox {
     this.engine.destroy();
   }
 }
-
-// Initialize default modules
-ModuleRegistry.load(
-  Array.from(defaultModules.values()).map(
-    (def) => new Module(def.name, def.source, def.options),
-  ),
-);
