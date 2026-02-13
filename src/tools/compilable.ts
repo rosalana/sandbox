@@ -12,6 +12,7 @@ import {
 import Parser from "./parser";
 import { uniforms as UNIFORMS } from "../globals";
 import { modules as MODULES } from "../globals";
+import { runtime_modules as RUNTIME_MODULES } from "../globals";
 
 type RewriteOp = {
   index: number;
@@ -97,6 +98,9 @@ export default class Compilable {
 
       // Rewrite and collect requirements with the alias as namespace
       this.processExtraction(extraction, imp.alias);
+
+      // Register the module in runtime modules for engine access
+      RUNTIME_MODULES.register(imp.module, module);
     }
   }
 

@@ -19,6 +19,7 @@ import Program from "./program";
 import Uniforms from "./uniforms";
 import Hooks from "./hooks";
 import Shader from "./shader";
+import { runtime_modules as RUNTIME_MODULES } from "../globals";
 
 /**
  * Main WebGL orchestrator.
@@ -208,6 +209,9 @@ export default class WebGL {
    */
   shader(vertex: Shader, fragment: Shader): this {
     try {
+      // Clear runtime modules before shader compilation to avoid stale modules from previous shaders
+      RUNTIME_MODULES.clear();
+
       // Check version compatibility
       if (vertex.version() !== fragment.version()) {
         throw new SandboxShaderVersionMismatchError(
