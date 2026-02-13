@@ -7,7 +7,11 @@ import type {
   WebGLContext,
   WebGLVersion,
 } from "../types";
-import { SandboxError, SandboxWebGLNotSupportedError } from "../errors";
+import {
+  SandboxError,
+  SandboxOnLoadCallbackError,
+  SandboxWebGLNotSupportedError,
+} from "../errors";
 import Clock from "./clock";
 import Geometry from "./geometry";
 import Program from "./program";
@@ -222,7 +226,13 @@ export default class WebGL {
       }
 
       // Call onLoad callback after successful shader setup
-      this.options.onLoad();
+      try {
+        this.options.onLoad();
+      } catch (error) {
+        throw new SandboxOnLoadCallbackError(
+          error instanceof Error ? error.message : String(error),
+        );
+      }
     } catch (error) {
       if (error instanceof SandboxError) {
         this.options.onError(error);
@@ -252,13 +262,24 @@ export default class WebGL {
 
     const state = this._clock.getState();
 
-    this.onBeforeHooks.run(state);
+    try {
+      this.onBeforeHooks.run(state);
+    } catch (error) {
+      if (error instanceof SandboxError) {
+        this.options.onError(error);
+      }
+    }
 
     this.playing = false;
     this._clock.stop();
 
-    this.onAfterHooks.run(state);
-
+    try {
+      this.onAfterHooks.run(state);
+    } catch (error) {
+      if (error instanceof SandboxError) {
+        this.options.onError(error);
+      }
+    }
     return this;
   }
 
@@ -311,7 +332,13 @@ export default class WebGL {
     const gl = this.gl;
 
     // Call before render callback
-    this.onBeforeHooks.run(state);
+    try {
+      this.onBeforeHooks.run(state);
+    } catch (error) {
+      if (error instanceof SandboxError) {
+        this.options.onError(error);
+      }
+    }
 
     // Clear canvas
     gl.clearColor(0, 0, 0, 0);
@@ -331,6 +358,12 @@ export default class WebGL {
     this._geometry.draw();
 
     // Call after render callback
-    this.onAfterHooks.run(state);
+    try {
+      this.onAfterHooks.run(state);
+    } catch (error) {
+      if (error instanceof SandboxError) {
+        this.options.onError(error);
+      }
+    }
   }
 }
