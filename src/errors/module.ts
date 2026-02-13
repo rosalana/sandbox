@@ -29,3 +29,21 @@ export class SandboxAtemptedToImportMainFunctionError extends SandboxError {
     );
   }
 }
+
+export class SandboxForbiddenModuleNameError extends SandboxError {
+  constructor(public readonly moduleName: string) {
+    super(
+      `Module name '${moduleName}' is not allowed. Module names cannot be 'sandbox' or start with 'sandbox/'.`,
+      "MODULE_ERROR",
+    );
+  }
+}
+
+export class SandboxOverwriteModuleError extends SandboxError {
+  constructor(public readonly moduleName: string) {
+    super(
+      `Module '${moduleName}' is already defined. Overwriting existing modules is not allowed.`,
+      "MODULE_ERROR",
+    );
+  }
+}

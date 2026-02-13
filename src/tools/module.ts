@@ -1,6 +1,8 @@
 import {
   SandboxAtemptedToImportMainFunctionError,
+  SandboxForbiddenModuleNameError,
   SandboxModuleMethodNotFoundError,
+  SandboxOverwriteModuleError,
 } from "../errors";
 import {
   ModuleDefinition,
@@ -31,7 +33,16 @@ export default class Module extends Compilable {
   static define(definition: ModuleDefinition): Module {
     const { name, source, options } = definition;
 
+    if (name === "sandbox" || name.startsWith("sandbox/")) {
+      throw new SandboxForbiddenModuleNameError(name);
+    }
+
     const module = new Module(name, source, options);
+
+    if (MODULES.has(name)) {
+      throw new SandboxOverwriteModuleError(name);
+    }
+
     MODULES.register(name, module);
 
     return module;
