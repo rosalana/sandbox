@@ -333,6 +333,7 @@ export default class WebGL {
     this._uniforms.destroy();
     this.onAfterHooks.destroy();
     this.onBeforeHooks.destroy();
+    RUNTIME_MODULES.clear();
   }
 
   /**
