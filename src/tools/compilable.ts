@@ -1,4 +1,5 @@
 import {
+  ModuleDefinition,
   ModuleFunctionExtraction,
   ShaderFunction,
   ShaderParseResult,
@@ -96,11 +97,14 @@ export default class Compilable {
       const module = MODULES.resolve(imp.module);
       const extraction = module.extract(imp.name);
 
+      // Copy the module to avoid mutating the original definition
+      const copy = module.copy();
+
       // Rewrite and collect requirements with the alias as namespace
-      this.processExtraction(extraction, imp.alias);
+      this.processExtraction(extraction, imp.alias, copy.options);
 
       // Register the module in runtime modules for engine access
-      RUNTIME_MODULES.register(imp.module, module);
+      RUNTIME_MODULES.register(imp.module, copy);
     }
   }
 
@@ -110,6 +114,7 @@ export default class Compilable {
   private processExtraction(
     extraction: ModuleFunctionExtraction,
     alias: string,
+    options: ModuleDefinition["options"] = {},
   ): void {
     const mainFunc = extraction.function;
 
@@ -145,7 +150,23 @@ export default class Compilable {
         ...uniform,
         name: `${uniqueAlias}_${uniform.name}${uniform.arrayNum ? `[${uniform.arrayNum}]` : ""}`,
       };
+
+      if (options[mainFunc.name]) {
+        const conf = Object.entries(options[mainFunc.name]).find(
+          ([k, o]) => o.uniform === uniform.name,
+        );
+        if (conf) {
+          conf[1].uniform = `${uniqueAlias}_${uniform.name}`;
+        }
+      }
+
       this.requirements.uniforms.set(namespacedUniform.name, namespacedUniform);
+    }
+
+    // Rename the options key from original function name to the alias
+    if (options[mainFunc.name]) {
+      options[alias] = options[mainFunc.name];
+      delete options[mainFunc.name];
     }
   }
 
