@@ -18,11 +18,11 @@ It's **DX‑friendly**, small, and intentionally minimal — perfect for gradien
 
 ### Bundle size comparison
 
-| Library     | Minified | Gzipped  |
-| ----------- | -------- | -------- |
-| **Sandbox** | 31 KB    | **8 KB** |
-| three.js    | 694 KB   | 175 KB   |
-| p5.js       | 1.1 MB   | 351 KB   |
+| Library     | Minified | Gzipped   |
+| ----------- | -------- | --------- |
+| **Sandbox** | 57 KB    | **15 KB** |
+| three.js    | 694 KB   | 175 KB    |
+| p5.js       | 1.1 MB   | 351 KB    |
 
 Sandbox is **~22x smaller** than three.js and **~44x smaller** than p5.js.
 
@@ -35,10 +35,16 @@ It works in both **WebGL1 and WebGL2** contexts, with automatic fallback and det
 - [Playback control](#playback-control)
   - [Time control](#time-control)
   - [Static rendering](#static-rendering)
-- [Shaders](#shaders)
-  - [WebGL version detection](#webgl-version-detection)
-- [Uniforms](#uniforms)
-- [Built‑in uniforms](#built-in-uniforms)
+- [Sandbox Shaders](#sandbox-shaders)
+  - [Writing shaders](#writing-shaders)
+  - [Importing effects](#importing-effects)
+  - [Multiple imports and aliasing](#multiple-imports-and-aliasing)
+  - [Built‑in uniforms](#built-in-uniforms)
+  - [Custom uniforms](#custom-uniforms)
+  - [Configuring modules](#configuring-modules)
+  - [Built‑in modules](#built-in-modules)
+  - [Defining your own modules](#defining-your-own-modules)
+  - [Module options and defaults](#module-options-and-defaults)
 - [Hooks](#hooks)
   - [Self-removing hooks](#self-removing-hooks)
 - [Chaining](#chaining)
@@ -120,68 +126,69 @@ Or render at a specific time — perfect for deterministic, reproducible output:
 sandbox.renderAt(1.5);
 ```
 
-## Shaders
+## Sandbox Shaders
 
-Shaders are the only thing you need to provide. Sandbox comes with a default fullscreen vertex shader, so you usually don't need to write one yourself — and it automatically switches between WebGL1 and WebGL2 versions depending on your fragment shader.
+Let's be honest — writing GLSL from scratch is painful. Figuring out the right uniform declarations, copy-pasting utility functions from Shadertoy, wiring everything together... it's a lot of ceremony before you even see a pixel.
 
-Update your fragment shader on the fly:
+Sandbox changes that. We built a **smart shader preprocessor** that lets you `#import` ready-made effects and utilities directly into your shader. No boilerplate, no manual uniform wiring. Just pick what you need and go.
+
+### Writing shaders
+
+You only need to provide a fragment shader. Sandbox ships with a default fullscreen vertex shader and automatically matches WebGL versions — so you can focus on the fun part.
 
 ```ts
 sandbox.setFragment(fragmentSource);
 ```
 
-When you need full control over both vertex and fragment:
+Need full control over both shaders? No problem:
 
 ```ts
 sandbox.setShader(vertexSource, fragmentSource);
 ```
 
-### WebGL version detection
-
-Sandbox figures out which WebGL version you're using by looking at your shader code:
-
-- `#version 300 es` → WebGL2
-- no version directive → WebGL1
-
-If WebGL2 isn't available, Sandbox falls back to WebGL1 automatically. You can always check what you're running:
+Sandbox detects WebGL version from your code (`#version 300 es` → WebGL2, no directive → WebGL1) and falls back gracefully. You can always check what you're running:
 
 ```ts
 sandbox.version; // 1 or 2
 ```
 
-## Uniforms
+### Importing effects
 
-Uniforms are how you feed data into your shader. Sandbox makes them **type‑safe** and **chainable** — no more guessing what went wrong.
+Here's where things get interesting. Say you find a cool gradient function online, or you want to use one of Sandbox's built-in effects. Instead of copy-pasting GLSL code and manually declaring uniforms, just import it:
 
-Set a single uniform:
+```glsl
+#import gradient from "sandbox"
 
-```ts
-sandbox.setUniform<number>("u_intensity", 0.8);
+void main() {
+  vec3 color = gradient(v_texcoord.x);
+  fragColor = vec4(color, 1.0);
+}
 ```
 
-Set multiple uniforms at once:
+**That's the entire shader.** Sandbox handles the rest — it pulls in the `gradient` function, figures out which uniforms it needs, declares them, namespaces everything to avoid conflicts, and injects it all into your final GLSL. You never see the plumbing.
 
-```ts
-sandbox.setUniforms<{
-  u_intensity: number;
-  u_color: Vec3;
-}>({
-  u_intensity: 0.75,
-  u_color: [1, 0.2, 0.3],
-});
+Only the functions you actually import (and their dependencies) end up in the compiled shader. Everything else is tree-shaken away.
+
+### Multiple imports and aliasing
+
+Want to use the same effect twice with different settings? Use `as` to create independent copies:
+
+```glsl
+#import gradient as background from "sandbox"
+#import gradient as overlay from "sandbox"
+
+void main() {
+  vec3 bg = background(v_texcoord.x);
+  vec3 fg = overlay(v_texcoord.y);
+  fragColor = vec4(mix(bg, fg, 0.5), 1.0);
+}
 ```
 
-Read back a uniform value:
+Each import gets its own isolated set of uniforms. You can configure `background` and `overlay` completely independently — they don't interfere with each other.
 
-```ts
-const intensity = sandbox.getUniform<number>("u_intensity");
-```
+### Built‑in uniforms
 
-All numeric values are treated as floats. This keeps the API simple and predictable.
-
-## Built‑in uniforms
-
-These uniforms are filled automatically every frame — no setup needed. Just declare them in your shader and they work:
+These uniforms are populated automatically every frame. Just use them in your shader — no declaration or setup needed:
 
 | Uniform        | Type  | Description                 |
 | -------------- | ----- | --------------------------- |
@@ -190,6 +197,151 @@ These uniforms are filled automatically every frame — no setup needed. Just de
 | `u_delta`      | float | Delta time since last frame |
 | `u_mouse`      | vec2  | Mouse position on canvas    |
 | `u_frame`      | int   | Frame counter               |
+
+Built-in uniforms are globally available — even inside imported module functions. They're never namespaced, so `u_time` is always just `u_time`, everywhere.
+
+### Custom uniforms
+
+But what if you need your own data in the shader? Custom uniforms still work exactly how you'd expect. Declare them in your GLSL, then set them from JavaScript:
+
+```ts
+sandbox.setUniform<number>("u_intensity", 0.8);
+
+sandbox.setUniforms({
+  u_intensity: 0.75,
+  u_color: [1, 0.2, 0.3],
+});
+```
+
+Read a value back:
+
+```ts
+const intensity = sandbox.getUniform<number>("u_intensity");
+```
+
+Everything is **type-safe** and **chainable**. All numeric values are treated as floats — simple and predictable.
+
+### Configuring modules
+
+The real power of modules comes from how easy they are to configure. You don't need to know the underlying GLSL uniform names — just use the option names the module exposes.
+
+Set module options when creating the Sandbox:
+
+```ts
+const sandbox = Sandbox.create(canvas, {
+  fragment: myShader,
+  modules: {
+    background: {
+      colors: [
+        [1, 0, 0],
+        [0, 1, 0],
+      ],
+    },
+    overlay: {
+      colors: [
+        [0, 0, 1],
+        [1, 1, 0],
+      ],
+    },
+  },
+});
+```
+
+Or change them at any time during runtime:
+
+```ts
+sandbox.module("background", {
+  colors: [
+    [0.2, 0.1, 0.5],
+    [0.8, 0.3, 0.1],
+  ],
+});
+```
+
+That's it. Sandbox resolves the right uniforms under the hood — you just describe what you want.
+
+> ![IMPORTANT]
+> The module has to be in use when you set options, otherwise Sandbox doesn't know which uniforms to target.
+
+### Built‑in modules
+
+Sandbox ships with a growing library of ready-to-use GLSL modules. Just import and go.
+
+<!-- TODO: This section will be expanded as more modules are added -->
+
+### Defining your own modules
+
+Found a great GLSL snippet on the internet? Turn it into a reusable module in one line:
+
+```ts
+Sandbox.defineModule("my_effects", myGLSLSource);
+```
+
+Then import from it in any shader:
+
+```glsl
+#import bloom from "my_effects"
+```
+
+You can preview how your shader will compile by using:
+
+```ts
+Sandbox.compile(shaderSource);
+```
+
+This is a great way to debug or precompile shaders before deploying.
+
+Module names starting with `"sandbox"` are reserved for built-in modules. Each module can only be defined once — this prevents accidental overwrites.
+
+### Module options and defaults
+
+When defining a module, you can declare configurable options that map human-friendly names to GLSL uniforms. This is what powers the `sandbox.module()` API:
+
+```ts
+Sandbox.defineModule("my_gradient", gradientSource, {
+  myFunc: {
+    colors: {
+      uniform: "u_colors",
+      default: [
+        [1, 0, 0],
+        [0, 0, 1],
+      ],
+    },
+    speed: { uniform: "u_speed", default: 1.0 },
+  },
+});
+```
+
+Each option has a `uniform` (the GLSL name it maps to) and an optional `default` value that's automatically applied when the function is imported.
+
+If all functions in your module share the same options, use the `default` key to avoid repetition. We really recommend to share logic across one module.
+
+```ts
+Sandbox.defineModule("my_module", source, {
+  default: {
+    colors: {
+      uniform: "u_colors",
+      default: [
+        [1, 0, 0],
+        [0, 0, 1],
+      ],
+    },
+    speed: { uniform: "u_speed", default: 1.0 },
+  },
+  specialFunc: {
+    speed: { uniform: "u_speed", default: 2.0 },
+    // "colors" is inherited from default
+  },
+});
+```
+
+Per-function options always take priority over `default` when both define the same key.
+
+Want to see what's available? Inspect all registered modules and their options at any time:
+
+```ts
+Sandbox.availableModules();
+```
 
 ## Hooks
 
@@ -264,11 +416,18 @@ Sandbox.create(canvas, {
 
 The error object includes useful details:
 
-- `error.code` — error type (`SHADER_COMPILATION_FAILED`, `PROGRAM_LINK_FAILED`, etc.)
-- `error.lines` — line numbers where errors occurred (for compilation errors)
+- `error.code` — error category (see table below)
+- `error.lines` — line numbers where errors occurred (for shader compilation errors)
 - `error.shaderType` — which shader failed (`vertex` or `fragment`)
 
-Error codes: `WEBGL_NOT_SUPPORTED`, `SHADER_COMPILATION_FAILED`, `PROGRAM_LINK_FAILED`, `SHADER_VERSION_MISMATCH`
+| Code               | When                                                                                  |
+| ------------------ | ------------------------------------------------------------------------------------- |
+| `CONTEXT_ERROR`    | WebGL not supported or context creation failed                                        |
+| `SHADER_ERROR`     | Shader compilation failed, version mismatch, import syntax error, or missing function |
+| `PROGRAM_ERROR`    | Shader program linking failed                                                         |
+| `VALIDATION_ERROR` | Vertex/fragment shader version mismatch                                               |
+| `MODULE_ERROR`     | Module not found, method not found, forbidden name, or duplicate definition           |
+| `UNKNOWN_ERROR`    | Unexpected error in callbacks (onLoad, hooks)                                         |
 
 ## Vue integration
 
@@ -337,6 +496,7 @@ interface SandboxOptions {
   onBeforeRender?: HookCallback | null;
   onAfterRender?: HookCallback | null;
   uniforms?: UniformSchema;
+  modules?: Record<string, Record<string, AnyUniformValue>>;
 }
 ```
 
@@ -355,6 +515,7 @@ interface SandboxOptions {
 | `onBeforeRender`        | —               | Hook before each frame                         |
 | `onAfterRender`         | —               | Hook after each frame                          |
 | `uniforms`              | —               | Initial uniform values                         |
+| `modules`               | —               | Configure module options per imported function |
 
 ## Limitations (by design)
 
