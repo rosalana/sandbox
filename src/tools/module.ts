@@ -15,7 +15,7 @@ import { modules as MODULES } from "../globals";
 
 export default class Module extends Compilable {
   public name: ModuleDefinition["name"];
-  private options: ModuleDefinition["options"] = {};
+  public options: ModuleDefinition["options"] = {};
 
   constructor(
     name: ModuleDefinition["name"],
@@ -53,6 +53,18 @@ export default class Module extends Compilable {
    */
   static resolve(name: string): Module {
     return MODULES.resolve(name);
+  }
+
+  /**
+   * Create a copy of the module. To unplug references to the original object.
+   * Used when copying module to the runtime registry to allow independent runtime changes to options without affecting the original module definition.
+   */
+  copy(state: "original" | "compiled" = "original"): Module {
+    return new Module(
+      this.name,
+      this[state].source,
+      JSON.parse(JSON.stringify(this.options)),
+    );
   }
 
   /**
