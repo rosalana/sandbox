@@ -164,7 +164,7 @@ export default class Compilable {
     }
 
     // Rename the options key from original function name to the alias
-    if (options[mainFunc.name]) {
+    if (options[mainFunc.name] && alias !== mainFunc.name) {
       options[alias] = options[mainFunc.name];
       delete options[mainFunc.name];
     }
