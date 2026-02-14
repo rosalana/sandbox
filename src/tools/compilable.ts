@@ -121,8 +121,9 @@ export default class Compilable {
     const randomSuffix = Math.random().toString(36).substring(2, 8);
     const uniqueAlias = `${alias}_${randomSuffix}`;
 
-    // Process helper functions first
-    for (const helperFunc of extraction.dependencies.functions) {
+    // Process helper functions first in reverse order to ensure definitions
+    for (let i = extraction.dependencies.functions.length - 1; i >= 0; i--) {
+      const helperFunc = extraction.dependencies.functions[i];
       const rewrittenHelper = this.rewriteFunction(helperFunc, alias, {
         uniforms: extraction.dependencies.uniforms,
         functions: extraction.dependencies.functions,
