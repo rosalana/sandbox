@@ -399,7 +399,7 @@ export class Sandbox {
    * @example
    * sandbox.module("my_module", { intensity: 0.5 });
    */
-  module(name: string, config: Record<string, AnyUniformValue>): this {
+  module<T extends Record<string, AnyUniformValue>>(name: string, config: T): this {
     const options = RUNTIME_MODULES.resolveOptions(name);
 
     if (!options) {
