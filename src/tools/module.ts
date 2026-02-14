@@ -1,5 +1,6 @@
 import {
-  SandboxAtemptedToImportMainFunctionError,
+  SandboxAttemptedToImportMainFunctionError,
+  SandboxAttemptedToImportDefaultFunctionError,
   SandboxForbiddenModuleNameError,
   SandboxModuleMethodNotFoundError,
   SandboxOverwriteModuleError,
@@ -24,7 +25,33 @@ export default class Module extends Compilable {
   ) {
     super(source);
     this.name = name;
-    this.options = options;
+    this.options = this.resolveOptions(options);
+  }
+
+  private resolveOptions(
+    options: ModuleDefinition["options"],
+  ): ModuleDefinition["options"] {
+    if (!options?.default) return options || {};
+
+    const parsed = this.original.parse();
+    const defaultConfig = options.default;
+
+    for (const fn of parsed.functions) {
+      if (fn.name === "main" || fn.name === "default") continue;
+
+      if (options[fn.name]) {
+        const fnOptions = options[fn.name];
+        for (const key in defaultConfig) {
+          if (!(key in fnOptions)) {
+            fnOptions[key] = defaultConfig[key];
+          }
+        }
+      } else {
+        options[fn.name] = { ...defaultConfig };
+      }
+    }
+
+    return options || {};
   }
 
   /**
@@ -77,7 +104,8 @@ export default class Module extends Compilable {
       methods: this.compiled
         .parse()
         .functions.map((f) => f.name)
-        .filter((n) => n !== "main"),
+        .filter((n) => n !== "main" && n !== "default"),
+      uniforms: this.compiled.parse().uniforms.map((u) => u.name),
       options: this.options,
     };
   }
@@ -90,7 +118,11 @@ export default class Module extends Compilable {
     this.compile();
 
     if (name === "main") {
-      throw new SandboxAtemptedToImportMainFunctionError(this.name);
+      throw new SandboxAttemptedToImportMainFunctionError(this.name);
+    }
+
+    if (name === "default") {
+      throw new SandboxAttemptedToImportDefaultFunctionError(this.name);
     }
 
     const content = this.compiled.parse();

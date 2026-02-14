@@ -30,7 +30,7 @@ export interface SandboxOptions {
   /** Initial uniforms to set */
   uniforms?: UniformSchema;
   /** Configure used modules behavior */
-  modules?: Record<string, ModuleMethodOption>;
+  modules?: Record<string, Record<string, AnyUniformValue>>;
 }
 
 /** Resolved sandbox options with all defaults applied */

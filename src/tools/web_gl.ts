@@ -99,6 +99,11 @@ export default class WebGL {
       webgl._uniforms.setMany(options.uniforms);
     }
 
+    // Set module default uniform values
+    if (!RUNTIME_MODULES.isEmpty()) {
+      webgl._uniforms.setMany(RUNTIME_MODULES.defaults());
+    }
+
     return webgl;
   }
 

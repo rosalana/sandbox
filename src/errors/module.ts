@@ -21,10 +21,19 @@ export class SandboxModuleMethodNotFoundError extends SandboxError {
   }
 }
 
-export class SandboxAtemptedToImportMainFunctionError extends SandboxError {
+export class SandboxAttemptedToImportMainFunctionError extends SandboxError {
   constructor(public readonly moduleName: string) {
     super(
       `Importing 'main' function from module '${moduleName}' is forbidden.`,
+      "MODULE_ERROR",
+    );
+  }
+}
+
+export class SandboxAttemptedToImportDefaultFunctionError extends SandboxError {
+  constructor(public readonly moduleName: string) {
+    super(
+      `Name 'default' is reserved and cannot be used as a function name in module '${moduleName}'.`,
       "MODULE_ERROR",
     );
   }

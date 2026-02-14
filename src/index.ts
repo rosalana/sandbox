@@ -64,6 +64,12 @@ export class Sandbox {
     this.setupListeners();
     this.setViewport();
 
+    if (this.options.modules) {
+      for (const [name, config] of Object.entries(this.options.modules)) {
+        this.module(name, config);
+      }
+    }
+
     if (this.options.autoplay) {
       this.play();
     }

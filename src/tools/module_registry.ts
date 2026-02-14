@@ -1,4 +1,4 @@
-import { ModuleMethodOption } from "../types";
+import { ModuleMethodOption, UniformSchema } from "../types";
 import { SandboxModuleNotFoundError } from "../errors";
 import type Module from "./module";
 
@@ -27,6 +27,36 @@ export default class ModuleRegistry {
     return Array.from(this.modules.values()).map((module) =>
       module.getDefinition(),
     );
+  }
+
+  /**
+   * Get the list of uniforms required by the currently registered modules.
+   * This is used to automatically set up the uniforms in the shader based on the modules in use.
+   */
+  defaults(): UniformSchema {
+    const uniformMap: UniformSchema = {};
+
+    this.modules.forEach((module) => {
+      const content = module.getDefinition();
+
+      if (!content.options) return;
+
+      for (const method in content.options) {
+        const options = content.options[method];
+
+        for (const conf in options) {
+          const option = options[conf];
+          if (
+            option.default !== undefined &&
+            !content.uniforms.includes(option.uniform)
+          ) {
+            uniformMap[option.uniform] = option.default;
+          }
+        }
+      }
+    });
+
+    return uniformMap;
   }
 
   /**
@@ -67,6 +97,13 @@ export default class ModuleRegistry {
    */
   has(name: string): boolean {
     return this.modules.has(name);
+  }
+
+  /**
+   * Check if the registry is empty (no modules registered).
+   */
+  isEmpty(): boolean {
+    return this.modules.size === 0;
   }
 
   /**

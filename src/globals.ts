@@ -11,8 +11,14 @@ import SandboxModule from "./shaders/modules/sandbox.glsl?raw";
  */
 export const modules = new ModuleRegistry([
   new Module("sandbox", SandboxModule, {
-    gradient: {
-      colors: { uniform: "u_colors" },
+    default: {
+      colors: {
+        uniform: "u_colors",
+        default: [
+          [1, 0, 0],
+          [0, 0, 1],
+        ],
+      },
     },
   }),
 ]);
