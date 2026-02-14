@@ -143,7 +143,7 @@ export default class Compilable {
 
       const namespacedUniform: ShaderUniform = {
         ...uniform,
-        name: `${uniqueAlias}_${uniform.name}`,
+        name: `${uniqueAlias}_${uniform.name}${uniform.arrayNum ? `[${uniform.arrayNum}]` : ""}`,
       };
       this.requirements.uniforms.set(namespacedUniform.name, namespacedUniform);
     }

@@ -153,7 +153,7 @@ export default class Parser {
 
   private detectUniforms(): ShaderUniform[] {
     const uniformRegex =
-      /^[ \t]*uniform\s+(?:(?:highp|mediump|lowp)\s+)?(\w+)\s+(\w+)\s*;/gm;
+      /^[ \t]*uniform\s+(?:(?:highp|mediump|lowp)\s+)?(\w+)\s+(\w+)(?:\[(\d+)\])?\s*;/gm;
     const uniforms: ShaderUniform[] = [];
 
     let match: RegExpExecArray | null;
@@ -168,8 +168,9 @@ export default class Parser {
 
       const type = match[1] as GLSLType;
       const name = match[2];
+      const arrayNum = match[3] ? parseInt(match[3], 10) : undefined;
 
-      uniforms.push({ name, type, line: lineNumber });
+      uniforms.push({ name, type, line: lineNumber, arrayNum });
     }
 
     return uniforms;

@@ -196,6 +196,7 @@ export type ShaderImport = {
 export type ShaderUniform = GLSLVariable & {
   /** Line number where import appears */
   name: "u_time" | "u_resolution" | "u_delta" | "u_mouse" | "u_frame" | string;
+  arrayNum?: number; // For array uniforms like u_colors[10]
   line?: number;
 };
 
