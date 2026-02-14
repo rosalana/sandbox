@@ -7,7 +7,7 @@ import {
   ShaderUniform,
   WebGLVersion,
 } from "../types";
-import { SandboxShaderImportSyntaxError } from "../errors";
+import { SandboxShaderDuplicateImportNameError, SandboxShaderImportSyntaxError } from "../errors";
 
 export default class Parser {
   public parsed: ShaderParseResult | null = null;
@@ -83,6 +83,10 @@ export default class Parser {
       const name = match[1];
       const alias = match[2] || match[1];
       const module = match[3];
+
+      if (imports.some((imp) => imp.alias === alias)) {
+        throw new SandboxShaderDuplicateImportNameError(alias, lineNumber);
+      }
 
       imports.push({ name, alias, module, line: lineNumber });
     }

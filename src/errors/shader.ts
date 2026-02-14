@@ -69,10 +69,7 @@ export class SandboxShaderRequirementMismatchError extends SandboxError {
 
 export class SandboxShaderWithoutFunctionError extends SandboxError {
   constructor() {
-    super(
-      `Shader source does not contain any function.`,
-      "SHADER_ERROR",
-    );
+    super(`Shader source does not contain any function.`, "SHADER_ERROR");
   }
 }
 
@@ -83,6 +80,18 @@ export class SandboxShaderImportSyntaxError extends SandboxError {
   ) {
     super(
       `Syntax error in shader import statement at line ${line}: ${details}`,
+      "SHADER_ERROR",
+    );
+  }
+}
+
+export class SandboxShaderDuplicateImportNameError extends SandboxError {
+  constructor(
+    public readonly name: string,
+    public readonly line: number,
+  ) {
+    super(
+      `Duplicate import name "${name}" found at line ${line}. Each import must have a unique name.`,
       "SHADER_ERROR",
     );
   }
