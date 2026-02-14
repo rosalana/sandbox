@@ -80,6 +80,18 @@ export default class ModuleRegistry {
   }
 
   /**
+   * Merge a module into the registry. If a module with the same name already exists, options will be merged together.
+   */
+  merge(name: string, module: Module): void {
+    if (!this.modules.has(name)) return this.register(name, module);
+
+    const existing = this.modules.get(name)!;
+    existing.merge(module);
+
+    this.modules.set(name, existing);
+  }
+
+  /**
    * Resolve a module by name. Throws an error if the module is not found.
    */
   resolve(name: string): Module {

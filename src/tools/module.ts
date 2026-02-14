@@ -97,6 +97,18 @@ export default class Module extends Compilable {
   }
 
   /**
+   * Merge options from another module into this one, without affecting the original module definition.
+   * Used when merging imported modules into the runtime registry.
+   */
+  merge(module: Module): void {
+    // Merge options
+    this.options = {
+      ...this.options,
+      ...module.options,
+    };
+  }
+
+  /**
    * Get the module definition
    */
   getDefinition() {

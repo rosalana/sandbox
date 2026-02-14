@@ -104,7 +104,7 @@ export default class Compilable {
       this.processExtraction(extraction, imp.alias, copy.options);
 
       // Register the module in runtime modules for engine access
-      RUNTIME_MODULES.register(imp.module, copy);
+      RUNTIME_MODULES.merge(imp.module, copy);
     }
   }
 
