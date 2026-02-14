@@ -51,6 +51,8 @@ export default class Module extends Compilable {
       }
     }
 
+    delete options.default; // Remove default after applying
+
     return options || {};
   }
 
