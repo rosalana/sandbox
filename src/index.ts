@@ -14,6 +14,7 @@ import WebGL from "./tools/web_gl";
 import Module from "./tools/module";
 import Shader from "./tools/shader";
 import { modules as MODULES } from "./globals";
+import { runtime_modules as RUNTIME_MODULES } from "./globals";
 
 export * from "./types";
 export * from "./errors";
@@ -340,7 +341,9 @@ export class Sandbox {
     if (fragVersion !== vertVersion) {
       if (!this.usingCustomVertex) {
         // Auto-switch only if not using custom vertex shader
-        this.options.vertex = new Shader(fragVersion === 2 ? WebGL2_Vert : WebGL1_Vert);
+        this.options.vertex = new Shader(
+          fragVersion === 2 ? WebGL2_Vert : WebGL1_Vert,
+        );
       }
     }
 
@@ -388,11 +391,31 @@ export class Sandbox {
   /**
    * Runtime configure the module behavior
    * @example
-   * sandbox.module("my_module").set({ intensity: 0.5 });
+   * sandbox.module("my_module", { intensity: 0.5 });
    */
-  module(name: string) {
-    // modules that are currently running has to be stored in the engine!
-    // return this.engine.module(name);
+  module(name: string, config: Record<string, AnyUniformValue>): this {
+    const options = RUNTIME_MODULES.resolveOptions(name);
+
+    if (!options) {
+      console.warn(
+        `Sandbox: Counld not find options for '${name}' function. Make sure you used the correct imported name and the module is currently in use by the shader.`,
+      );
+      return this;
+    }
+
+    for (const [key, value] of Object.entries(config)) {
+      const option = options[key];
+      if (!option) {
+        console.warn(
+          `Sandbox: Option '${key}' not found for function '${name}'. Make sure to check available options with Sandbox.availableModules() and provide the correct option name.`,
+        );
+        continue;
+      }
+
+      this.setUniform(option.uniform, value);
+    }
+
+    return this;
   }
 
   /**
