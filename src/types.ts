@@ -34,7 +34,10 @@ export interface SandboxOptions {
 }
 
 /** Resolved sandbox options with all defaults applied */
-export type ResolvedSandboxOptions = Omit<Required<SandboxOptions>, "vertex" | "fragment"> & {
+export type ResolvedSandboxOptions = Omit<
+  Required<SandboxOptions>,
+  "vertex" | "fragment"
+> & {
   vertex: Shader;
   fragment: Shader;
 };

@@ -1,7 +1,8 @@
-import SimpleModule from "./shaders/backup/simple.glsl?raw";
 import Module from "./tools/module";
 import ModuleRegistry from "./tools/module_registry";
 import { ShaderUniform } from "./types";
+import SimpleModule from "./shaders/backup/simple.glsl?raw";
+import SandboxModule from "./shaders/modules/sandbox.glsl?raw";
 
 /**
  * Default modules bundled with Sandbox.
@@ -9,7 +10,11 @@ import { ShaderUniform } from "./types";
  * This registry will grow when more modules are defined
  */
 export const modules = new ModuleRegistry([
-  new Module("sandbox", SimpleModule),
+  new Module("sandbox", SandboxModule, {
+    gradient: {
+      colors: { uniform: "u_colors" },
+    },
+  }),
 ]);
 
 /**
