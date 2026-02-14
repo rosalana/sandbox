@@ -1,4 +1,5 @@
-import { SandboxModuleMethodNotFoundError, SandboxModuleNotFoundError } from "../errors";
+import { ModuleMethodOption } from "../types";
+import { SandboxModuleNotFoundError } from "../errors";
 import type Module from "./module";
 
 export default class ModuleRegistry {
@@ -31,14 +32,14 @@ export default class ModuleRegistry {
   /**
    * Resolve the options from the module definitions for a given function name.
    */
-  resolveOptions(func: string) {
+  resolveOptions(func: string): Record<string, ModuleMethodOption> | null {
     for (const module of this.modules.values()) {
       if (module.options && module.options[func]) {
         return module.options[func];
       }
     }
 
-    throw new SandboxModuleMethodNotFoundError('NOT_RESOLVED', func);
+    return null;
   }
 
   /**
