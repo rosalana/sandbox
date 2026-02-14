@@ -101,11 +101,19 @@ export default class Module extends Compilable {
    * Used when merging imported modules into the runtime registry.
    */
   merge(module: Module): void {
+    this.options = this.options || {};
+    const u = this.getDefinition().uniforms;
     // Merge options
-    this.options = {
-      ...this.options,
-      ...module.options,
-    };
+    for (const [key, value] of Object.entries(module.options ?? {})) {
+      if (!this.options[key]) this.options[key] = value;
+      else {
+        for (const [configKey, configValue] of Object.entries(value)) {
+          // merge only if it looks like compiled uniform reference, otherwise skip it
+          if (u.includes(configValue.uniform)) continue;
+          else this.options[key][configKey] = configValue;
+        }
+      }
+    }
   }
 
   /**
