@@ -264,38 +264,38 @@ describe("Integration — tree-shaking", () => {
 // ─── Built-in Sandbox Module ────────────────────────────────────────────────
 
 describe("Integration — built-in sandbox module", () => {
-  it("imports gradient from sandbox module", () => {
+  it("imports noise from sandbox module", () => {
     const shader = new Shader(`
-      #import gradient from 'sandbox'
+      #import noise from 'sandbox'
       void main() {
-        vec3 c = gradient(0.5);
-        gl_FragColor = vec4(c, 1.0);
+        float n = noise(gl_FragCoord.xy);
+        gl_FragColor = vec4(vec3(n), 1.0);
       }
     `);
 
     const compiled = shader.compile();
     expect(compiled).not.toContain("#import");
-    expect(compiled).toContain("gradient");
-
-    // u_colors should be namespaced
-    expect(compiled).toMatch(/u_colors/);
+    expect(compiled).toContain("noise");
+    // noise depends on hash — tree-shaking should pull it in
+    expect(compiled).toContain("hash");
   });
 
-  it("sandbox gradient module has colors option in runtime", () => {
+  it("imports vignette from sandbox/effects with options in runtime", () => {
     const shader = new Shader(`
-      #import gradient from 'sandbox'
+      #import vignette from 'sandbox/effects'
       void main() {
-        vec3 c = gradient(0.5);
-        gl_FragColor = vec4(c, 1.0);
+        vec2 uv = gl_FragCoord.xy / u_resolution;
+        float v = vignette(uv);
+        gl_FragColor = vec4(vec3(v), 1.0);
       }
     `);
 
     shader.compile();
 
-    const opts = RUNTIME_MODULES.resolveOptions("gradient");
+    const opts = RUNTIME_MODULES.resolveOptions("vignette");
     expect(opts).not.toBeNull();
-    expect(opts!.colors).toBeDefined();
-    expect(opts!.colors.uniform).toContain("u_colors");
+    expect(opts!.intensity).toBeDefined();
+    expect(opts!.intensity.uniform).toContain("u_intensity");
   });
 });
 

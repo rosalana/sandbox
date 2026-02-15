@@ -43,7 +43,7 @@ vec3 rgb255(float r, float g, float b) {
  * color = a + b * cos(2π(c·t + d))
  * Generates infinite smooth color ramps from 4 vec3 params.
  */
-vec3 palette(float t, vec3 a, vec3 b, vec3 c, vec3 d) {
+vec3 palette(vec3 a, vec3 b, vec3 c, vec3 d, float t) {
     return a + b * cos(6.28318 * (c * t + d));
 }
 
@@ -51,7 +51,7 @@ vec3 palette(float t, vec3 a, vec3 b, vec3 c, vec3 d) {
  * Linear gradient between two colors.
  * t is clamped to 0-1.
  */
-vec3 gradient(float t, vec3 a, vec3 b) {
+vec3 gradient(vec3 a, vec3 b, float t) {
     return mix(a, b, clamp(t, 0.0, 1.0));
 }
 
@@ -59,11 +59,41 @@ vec3 gradient(float t, vec3 a, vec3 b) {
  * 3-stop gradient.
  * t=0 → a, t=0.5 → b, t=1 → c
  */
-vec3 gradient3(float t, vec3 a, vec3 b, vec3 c) {
+vec3 gradient3(vec3 a, vec3 b, vec3 c, float t) {
     t = clamp(t, 0.0, 1.0);
     return t < 0.5
         ? mix(a, b, t * 2.0)
         : mix(b, c, (t - 0.5) * 2.0);
+}
+
+/**
+ * 3-color palette with contrast-based blending.
+ * Maps value t to 3 colors with adjustable transition sharpness,
+ * base tint toward c1, and highlight boost on peak regions.
+ * sharpness = transition contrast (1.0 = soft, 3.0 = sharp)
+ * tint = blend toward c1 (0.0 = none, 0.3 = subtle warmth)
+ * highlight = additive light on dominant color regions
+ * @color-modifier
+ */
+uniform float u_sharpness;
+uniform float u_tint;
+uniform float u_highlight;
+
+vec3 tri_mix(vec3 c1, vec3 c2, vec3 c3, float t) {
+    float value = clamp(t * u_sharpness, 0.0, 2.0);
+
+    float w1 = max(0.0, 1.0 - u_sharpness * abs(1.0 - value));
+    float w2 = max(0.0, 1.0 - u_sharpness * abs(value));
+    float w3 = 1.0 - min(1.0, w1 + w2);
+
+    vec3 color = c1 * w1 + c2 * w2 + c3 * w3;
+
+    color = mix(color, c1, u_tint);
+
+    float light = u_highlight * (max(w1 * 5.0 - 4.0, 0.0) + max(w2 * 5.0 - 4.0, 0.0));
+    color += light;
+
+    return color;
 }
 
 void main() {}

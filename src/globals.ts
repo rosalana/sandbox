@@ -1,8 +1,12 @@
 import Module from "./tools/module";
 import ModuleRegistry from "./tools/module_registry";
 import { ShaderUniform } from "./types";
-import SimpleModule from "./shaders/backup/simple.glsl?raw";
-import SandboxModule from "./shaders/modules/sandbox.glsl?raw";
+
+// Module GLSL sources
+import sandboxSource from "./shaders/modules/sandbox.glsl?raw";
+import colorsSource from "./shaders/modules/colors.glsl?raw";
+import effectsSource from "./shaders/modules/effects.glsl?raw";
+import filtersSource from "./shaders/modules/filters.glsl?raw";
 
 /**
  * Default modules bundled with Sandbox.
@@ -10,15 +14,40 @@ import SandboxModule from "./shaders/modules/sandbox.glsl?raw";
  * This registry will grow when more modules are defined
  */
 export const modules = new ModuleRegistry([
-  new Module("sandbox", SandboxModule, {
+  new Module("sandbox", sandboxSource),
+  new Module("sandbox/colors", colorsSource, {
+    tri_mix: {
+      sharpness: { uniform: "u_sharpness", default: 2.0 },
+      tint: { uniform: "u_tint", default: 0.0 },
+      highlight: { uniform: "u_highlight", default: 0.0 },
+    },
+  }),
+  new Module("sandbox/effects", effectsSource, {
+    twist: {
+      intensity: { uniform: "u_intensity", default: 1.0 },
+    },
+    organic: {
+      intensity: { uniform: "u_intensity", default: 3.0 },
+    },
+    pixelate: {
+      intensity: { uniform: "u_intensity", default: 20.0 },
+    },
+    posterize: {
+      intensity: { uniform: "u_intensity", default: 30.0 },
+    },
+    grain: {
+      intensity: { uniform: "u_intensity", default: 0.1 },
+    },
+    glow: {
+      intensity: { uniform: "u_intensity", default: 0.5 },
+    },
+    vignette: {
+      intensity: { uniform: "u_intensity", default: 1.4 },
+    },
+  }),
+  new Module("sandbox/filters", filtersSource, {
     default: {
-      colors: {
-        uniform: "u_colors",
-        default: [
-          [1, 0, 0],
-          [0, 0, 1],
-        ],
-      },
+      intensity: { uniform: "u_intensity", default: 1.0 },
     },
   }),
 ]);

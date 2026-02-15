@@ -28,4 +28,20 @@ vec3 saturate(vec3 color) {
     return mix(vec3(gray), color, u_intensity);
 }
 
+vec3 lightness(vec3 color) {
+    float maxComponent = max(max(color.r, color.g), color.b);
+    return color * u_intensity / maxComponent;
+}
+
+vec3 posterize(vec3 color) {
+    return floor(color * u_intensity + 0.5) / u_intensity;
+}
+
+vec3 threshold(vec3 color) {
+    float avg = (color.r + color.g + color.b) / 3.0;
+    return avg > u_intensity ? vec3(1.0) : vec3(0.0);
+}
+
+
+
 void main() {}

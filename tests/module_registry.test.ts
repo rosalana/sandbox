@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 // Import globals first to avoid circular dependency resolution issue
 import { modules as MODULES } from "../src/globals";
 import ModuleRegistry from "../src/tools/module_registry";
@@ -188,15 +188,71 @@ describe("Global MODULES registry", () => {
     expect(MODULES.has("sandbox")).toBe(true);
   });
 
-  it("sandbox module has gradient method", () => {
-    const mod = MODULES.resolve("sandbox");
-    const def = mod.getDefinition();
-    expect(def.methods).toContain("gradient");
+  it("has the built-in 'sandbox/colors' module", () => {
+    expect(MODULES.has("sandbox/colors")).toBe(true);
   });
 
-  it("sandbox module gradient has colors option", () => {
+  it("has the built-in 'sandbox/effects' module", () => {
+    expect(MODULES.has("sandbox/effects")).toBe(true);
+  });
+
+  it("has the built-in 'sandbox/filters' module", () => {
+    expect(MODULES.has("sandbox/filters")).toBe(true);
+  });
+
+  it("sandbox module has core utility methods", () => {
     const mod = MODULES.resolve("sandbox");
-    expect(mod.options).toHaveProperty("gradient");
-    expect(mod.options!.gradient.colors.uniform).toBe("u_colors");
+    const def = mod.getDefinition();
+    expect(def.methods).toContain("hash");
+    expect(def.methods).toContain("noise");
+    expect(def.methods).toContain("fbm");
+    expect(def.methods).toContain("worley");
+    expect(def.methods).toContain("map");
+    expect(def.methods).toContain("rotate");
+    expect(def.methods).toContain("polar");
+  });
+
+  it("sandbox/colors module has color conversion methods", () => {
+    const mod = MODULES.resolve("sandbox/colors");
+    const def = mod.getDefinition();
+    expect(def.methods).toContain("hsv");
+    expect(def.methods).toContain("hsl");
+    expect(def.methods).toContain("hex");
+    expect(def.methods).toContain("palette");
+    expect(def.methods).toContain("gradient");
+    expect(def.methods).toContain("gradient3");
+    expect(def.methods).toContain("tri_mix");
+  });
+
+  it("sandbox/colors module has tri_mix options", () => {
+    const mod = MODULES.resolve("sandbox/colors");
+    expect(mod.options).toHaveProperty("tri_mix");
+    expect(mod.options!.tri_mix.sharpness.uniform).toBe("u_sharpness");
+    expect(mod.options!.tri_mix.tint.uniform).toBe("u_tint");
+    expect(mod.options!.tri_mix.highlight.uniform).toBe("u_highlight");
+  });
+
+  it("sandbox/effects module has UV transforms and color effects", () => {
+    const mod = MODULES.resolve("sandbox/effects");
+    expect(mod.options).toHaveProperty("twist");
+    expect(mod.options).toHaveProperty("organic");
+    expect(mod.options).toHaveProperty("pixelate");
+    expect(mod.options).toHaveProperty("posterize");
+    expect(mod.options).toHaveProperty("vignette");
+    expect(mod.options).toHaveProperty("grain");
+    expect(mod.options).toHaveProperty("glow");
+    expect(mod.options!.twist.intensity.uniform).toBe("u_intensity");
+    expect(mod.options!.organic.intensity.uniform).toBe("u_intensity");
+    expect(mod.options!.posterize.intensity.uniform).toBe("u_intensity");
+  });
+
+  it("sandbox/filters module has color adjustment filters", () => {
+    const mod = MODULES.resolve("sandbox/filters");
+    expect(mod.options).toHaveProperty("contrast");
+    expect(mod.options).toHaveProperty("brightness");
+    expect(mod.options).toHaveProperty("saturate");
+    expect(mod.options!.contrast.intensity.uniform).toBe("u_intensity");
+    expect(mod.options!.brightness.intensity.uniform).toBe("u_intensity");
+    expect(mod.options!.saturate.intensity.uniform).toBe("u_intensity");
   });
 });

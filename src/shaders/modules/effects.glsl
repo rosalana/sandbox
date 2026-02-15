@@ -5,21 +5,6 @@ uniform float u_intensity;
 // ─── UV Transforms ──────────────────────────────────────────
 
 /**
- * Spiral warp — spin distortion from center.
- * Options: intensity (twist strength), speed (animation speed)
- * Usage: uv = spiralWarp(uv);
- */
-vec2 spiralWarp(vec2 uv) {
-    vec2 center = uv - 0.5;
-    float r = length(center);
-    float a = atan(center.y, center.x);
-
-    a += u_intensity * (1.0 + 10.0 * r);
-
-    return vec2(cos(a), sin(a)) * r + 0.5;
-}
-
-/**
  * Pixelate - blocky mosaic effect.
  * @uv-modifier
  * #done
@@ -28,6 +13,40 @@ vec2 pixelate(vec2 uv) {
     float size = length(u_resolution) / (max(u_intensity, 1.0) * 10.0);
 
     return floor(uv / size) * size;
+}
+
+/**
+ * Spiral warp — spin distortion proportional to distance from origin.
+ * Expects centered UV (use centerize first).
+ * intensity = twist strength (0.4 = subtle, 1.0 = full spiral)
+ * @uv-modifier
+ */
+vec2 twist(vec2 uv) {
+    float dist = length(uv);
+    float angle = atan(uv.y, uv.x) - u_intensity * 20.0 * dist;
+    return vec2(cos(angle), sin(angle)) * dist;
+}
+
+/**
+ * Organic warp — iterative fluid morph distortion.
+ * Creates marble-like flowing patterns.
+ * intensity = animation speed
+ * @uv-modifier
+ */
+vec2 organic(vec2 uv) {
+    float speed = u_time * u_intensity;
+    vec2 acc = vec2(uv.x + uv.y);
+
+    for (int i = 0; i < 5; i++) {
+        acc += sin(max(uv.x, uv.y)) + uv;
+        uv += 0.5 * vec2(
+            cos(5.1123314 + 0.353 * acc.y + speed * 0.131121),
+            sin(acc.x - 0.113 * speed)
+        );
+        uv -= cos(uv.x + uv.y) - sin(uv.x * 0.711 - uv.y);
+    }
+
+    return uv;
 }
 
 // ─── Color Effects ──────────────────────────────────────────
@@ -43,8 +62,8 @@ vec3 posterize(vec3 color) {
 
 /**
  * Film grain — animated noise overlay.
- * Options: intensity (grain strength)
- * Usage: color = grain(color, uv);
+ * intensity = grain strength
+ * @color-modifier
  */
 vec3 grain(vec3 color, vec2 uv) {
     float n = (hash(uv * 1000.0 + u_time) - 0.5) * u_intensity;
@@ -53,8 +72,8 @@ vec3 grain(vec3 color, vec2 uv) {
 
 /**
  * Glow — luminance-based bloom, bright areas get amplified.
- * Options: intensity (glow strength)
- * Usage: color = glow(color);
+ * intensity = glow strength
+ * @color-modifier
  */
 vec3 glow(vec3 color) {
     float luminance = dot(color, vec3(0.299, 0.587, 0.114));
@@ -65,13 +84,13 @@ vec3 glow(vec3 color) {
 
 /**
  * Vignette — darkens canvas edges.
- * Options: intensity (edge darkening), smoothness (falloff softness)
- * Usage: color *= vignette(uv);
+ * intensity = how much edges darken (1.0 = subtle, 2.0 = strong)
+ * @multiplier
  */
 float vignette(vec2 uv) {
     vec2 center = uv - 0.5;
     float dist = length(center);
-    return 1.0 - smoothstep(0.5 - u_smoothness, 0.5, dist * u_intensity);
+    return 1.0 - smoothstep(0.3, 0.5, dist * u_intensity);
 }
 
 void main() {}
