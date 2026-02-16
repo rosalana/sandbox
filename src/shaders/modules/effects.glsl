@@ -1,42 +1,84 @@
 #import hash from 'sandbox'
+#import noise from 'sandbox'
+#import fbm from 'sandbox'
+#import voronoi from 'sandbox'
+#import worley from 'sandbox'
 
 uniform float u_intensity;
 
-// ─── UV Transforms ──────────────────────────────────────────
+// ─── UV Effects ─────────────────────────────────────────────
+// Each function takes UV and returns modified UV.
+// All use u_intensity uniform for configuration.
 
 /**
- * Pixelate - blocky mosaic effect.
+ * Pixelate — blocky mosaic effect.
+ * Snaps UV to a grid. Higher intensity = larger pixels.
+ * intensity = pixel count along shortest axis (default: 20)
  * @uv-modifier
- * #done
  */
-vec2 pixelate(vec2 uv) {
-    float size = length(u_resolution) / (max(u_intensity, 1.0) * 10.0);
-
+vec2 pixelate(vec2 uv, float intensity) {
+    float size = length(u_resolution) / (max(intensity, 1.0) * 10.0);
     return floor(uv / size) * size;
 }
 
 /**
- * Spiral warp — spin distortion proportional to distance from origin.
- * Expects centered UV (use centerize first).
+ * Twist — spiral distortion from center outward.
+ * Expects centered UV (use center() first).
  * intensity = twist strength (0.4 = subtle, 1.0 = full spiral)
  * @uv-modifier
- * #done
  */
-vec2 twist(vec2 uv) {
+vec2 twist(vec2 uv, float intensity) {
     float dist = length(uv);
-    float angle = atan(uv.y, uv.x) - u_intensity * 20.0 * dist;
+    float angle = atan(uv.y, uv.x) - intensity * 20.0 * dist;
     return vec2(cos(angle), sin(angle)) * dist;
 }
 
 /**
- * Organic warp — iterative fluid morph distortion.
- * Creates marble-like flowing patterns.
- * intensity = animation speed
+ * Ripple — concentric wave distortion from center.
+ * Expects centered UV (use center() first).
+ * Creates water-drop-like rings.
+ * intensity = wave amplitude (0.5 = gentle, 2.0 = strong)
  * @uv-modifier
- * #done
  */
-vec2 organic(vec2 uv) {
-    float speed = u_time * u_intensity;
+vec2 ripple(vec2 uv, float intensity) {
+    float dist = length(uv);
+    float wave = sin(dist * 40.0 - u_time * 3.0) * intensity * 0.02;
+    return uv + normalize(uv + 0.001) * wave;
+}
+
+/**
+ * Fisheye — barrel distortion from center.
+ * Expects centered UV (use center() first).
+ * Bends space outward like a fisheye lens.
+ * intensity = distortion power (0.5 = subtle, 2.0 = extreme)
+ * @uv-modifier
+ */
+vec2 fisheye(vec2 uv, float intensity) {
+    float dist = length(uv);
+    float power = pow(dist, intensity) / dist;
+    return uv * power;
+}
+
+/**
+ * Wobble — animated sine wave displacement.
+ * Creates a jelly-like horizontal wobble.
+ * intensity = wobble amount (1.0 = gentle, 5.0 = wild)
+ * @uv-modifier
+ */
+vec2 wobble(vec2 uv, float intensity) {
+    uv.x += sin(uv.y * 10.0 + u_time * 2.0) * intensity * 0.01;
+    uv.y += cos(uv.x * 10.0 + u_time * 2.0) * intensity * 0.01;
+    return uv;
+}
+
+/**
+ * Organic — iterative fluid morph distortion.
+ * Creates marble-like flowing patterns.
+ * intensity = animation speed (3.0 = default)
+ * @uv-modifier
+ */
+vec2 organic(vec2 uv, float intensity) {
+    float speed = u_time * intensity;
     vec2 acc = vec2(uv.x + uv.y);
 
     for (int i = 0; i < 5; i++) {
@@ -51,48 +93,103 @@ vec2 organic(vec2 uv) {
     return uv;
 }
 
-// ─── Color Effects ──────────────────────────────────────────
-
 /**
- * Posterize — reduce color to N discrete levels per channel.
- * @color-modifier
- * #done
+ * Glitch — random horizontal line displacement.
+ * Creates digital glitch artifact bands.
+ * intensity = glitch strength (0.5 = subtle, 3.0 = heavy)
+ * @uv-modifier
  */
-vec3 posterize(vec3 color) {
-    return floor(color * u_intensity + 0.5) / u_intensity;
+vec2 glitch(vec2 uv, float intensity) {
+    float line = floor(uv.y * 50.0);
+    float shift = hash(vec2(line, floor(u_time * 8.0)));
+    shift = step(0.9, shift) * (shift - 0.9) * 10.0;
+    uv.x += shift * intensity * 0.1 * u_resolution.x;
+    return uv;
 }
 
 /**
- * Film grain — animated noise overlay.
- * intensity = grain strength
- * @color-modifier
+ * Mirror — reflect UV across a chosen axis.
+ * Creates bilateral symmetry.
+ * intensity = 0 for horizontal mirror, 1 for vertical mirror
+ * @uv-modifier
  */
-vec3 grain(vec3 color, vec2 uv) {
-    float n = (hash(uv * 1000.0 + u_time) - 0.5) * u_intensity;
-    return color + n;
+vec2 mirror(vec2 uv, float intensity) {
+    if (intensity < 0.5) {
+        uv.x = abs(uv.x);
+    } else {
+        uv.y = abs(uv.y);
+    }
+    return uv;
 }
 
 /**
- * Glow — luminance-based bloom, bright areas get amplified.
- * intensity = glow strength
- * @color-modifier
+ * Kaleidoscope — repeating angular symmetry.
+ * Expects centered UV (use center() first).
+ * Creates mandala-like radial repeats.
+ * intensity = number of segments (4 = quad, 6 = hex, 8 = octa)
+ * @uv-modifier
  */
-vec3 glow(vec3 color) {
-    float luminance = dot(color, vec3(0.299, 0.587, 0.114));
-    return color + color * luminance * u_intensity;
+vec2 kaleidoscope(vec2 uv, float intensity) {
+    float segments = max(intensity, 1.0);
+    float angle = atan(uv.y, uv.x);
+    float segment_angle = 6.28318 / segments;
+    angle = mod(angle, segment_angle);
+    angle = abs(angle - segment_angle * 0.5);
+    float r = length(uv);
+    return vec2(cos(angle), sin(angle)) * r;
 }
 
-// ─── Multipliers ────────────────────────────────────────────
+/**
+ * Warp — domain warping using fractal noise.
+ * Displaces UV by layered fbm noise for smoke/cloud-like distortion.
+ * Animated over time.
+ * intensity = warp strength (0.5 = subtle haze, 3.0 = heavy distortion)
+ * @uv-modifier
+ */
+vec2 warp(vec2 uv, float intensity) {
+    vec2 offset = vec2(
+        fbm(uv + u_time * 0.3),
+        fbm(uv + vec2(5.2, 1.3) + u_time * 0.3)
+    );
+    return uv + offset * intensity * 0.1;
+}
 
 /**
- * Vignette — darkens canvas edges.
- * intensity = how much edges darken (1.0 = subtle, 2.0 = strong)
- * @multiplier
+ * Displace — noise-based UV displacement.
+ * Shifts UV using smooth value noise for a wavy, heat-haze look.
+ * Animated over time.
+ * intensity = displacement amount (1.0 = gentle, 5.0 = strong)
+ * @uv-modifier
  */
-float vignette(vec2 uv) {
-    vec2 center = uv - 0.5;
-    float dist = length(center);
-    return 1.0 - smoothstep(0.3, 0.5, dist * u_intensity);
+vec2 displace(vec2 uv, float intensity) {
+    float nx = noise(uv * 5.0 + u_time);
+    float ny = noise(uv * 5.0 + vec2(3.7, 7.1) + u_time);
+    return uv + (vec2(nx, ny) - 0.5) * intensity * 0.05;
+}
+
+/**
+ * Shatter — voronoi cell-based UV snapping.
+ * Snaps UV to nearest cell point, creating a broken-glass look.
+ * intensity = cell density (5.0 = large shards, 20.0 = fine fragments)
+ * @uv-modifier
+ */
+vec2 shatter(vec2 uv, float intensity) {
+    return voronoi(uv * intensity) / intensity;
+}
+
+/**
+ * Cells — cellular distortion using Worley distance.
+ * Displaces UV outward from cell edges, like looking through textured glass.
+ * intensity = cell scale (3.0 = large bubbles, 15.0 = fine texture)
+ * @uv-modifier
+ */
+vec2 cells(vec2 uv, float intensity) {
+    float dist = worley(uv * intensity);
+    vec2 grad = vec2(
+        worley(uv * intensity + vec2(0.01, 0.0)) - dist,
+        worley(uv * intensity + vec2(0.0, 0.01)) - dist
+    );
+    return uv + grad * dist * 2.0;
 }
 
 void main() {}

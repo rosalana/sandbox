@@ -5,6 +5,7 @@ import { ShaderUniform } from "./types";
 // Module GLSL sources
 import sandboxSource from "./shaders/modules/sandbox.glsl?raw";
 import colorsSource from "./shaders/modules/colors.glsl?raw";
+import timeSource from "./shaders/modules/time.glsl?raw";
 import effectsSource from "./shaders/modules/effects.glsl?raw";
 import filtersSource from "./shaders/modules/filters.glsl?raw";
 
@@ -15,39 +16,82 @@ import filtersSource from "./shaders/modules/filters.glsl?raw";
  */
 export const modules = new ModuleRegistry([
   new Module("sandbox", sandboxSource),
-  new Module("sandbox/colors", colorsSource, {
-    tri_mix: {
-      sharpness: { uniform: "u_sharpness", default: 2.0 },
-      tint: { uniform: "u_tint", default: 0.0 },
-      highlight: { uniform: "u_highlight", default: 0.0 },
-    },
-  }),
+  new Module("sandbox/colors", colorsSource),
+  new Module("sandbox/time", timeSource),
   new Module("sandbox/effects", effectsSource, {
+    default: {
+      intensity: { uniform: "u_intensity", default: 1.0 },
+    },
+    pixelate: {
+      intensity: { uniform: "u_intensity", default: 20.0 },
+    },
     twist: {
+      intensity: { uniform: "u_intensity", default: 1.0 },
+    },
+    ripple: {
+      intensity: { uniform: "u_intensity", default: 1.0 },
+    },
+    fisheye: {
+      intensity: { uniform: "u_intensity", default: 1.0 },
+    },
+    wobble: {
       intensity: { uniform: "u_intensity", default: 1.0 },
     },
     organic: {
       intensity: { uniform: "u_intensity", default: 3.0 },
     },
-    pixelate: {
-      intensity: { uniform: "u_intensity", default: 20.0 },
+    glitch: {
+      intensity: { uniform: "u_intensity", default: 1.0 },
     },
-    posterize: {
-      intensity: { uniform: "u_intensity", default: 30.0 },
+    mirror: {
+      intensity: { uniform: "u_intensity", default: 0.0 },
     },
-    grain: {
-      intensity: { uniform: "u_intensity", default: 0.1 },
+    kaleidoscope: {
+      intensity: { uniform: "u_intensity", default: 6.0 },
     },
-    glow: {
-      intensity: { uniform: "u_intensity", default: 0.5 },
+    zoom: {
+      intensity: { uniform: "u_intensity", default: 1.0 },
     },
-    vignette: {
-      intensity: { uniform: "u_intensity", default: 1.4 },
+    warp: {
+      intensity: { uniform: "u_intensity", default: 1.0 },
+    },
+    displace: {
+      intensity: { uniform: "u_intensity", default: 1.0 },
+    },
+    shatter: {
+      intensity: { uniform: "u_intensity", default: 10.0 },
+    },
+    cells: {
+      intensity: { uniform: "u_intensity", default: 8.0 },
     },
   }),
   new Module("sandbox/filters", filtersSource, {
     default: {
       intensity: { uniform: "u_intensity", default: 1.0 },
+    },
+    posterize: {
+      intensity: { uniform: "u_intensity", default: 8.0 },
+    },
+    threshold: {
+      intensity: { uniform: "u_intensity", default: 0.5 },
+    },
+    grain: {
+      intensity: { uniform: "u_intensity", default: 0.1 },
+    },
+    vignette: {
+      intensity: { uniform: "u_intensity", default: 1.4 },
+    },
+    glow: {
+      intensity: { uniform: "u_intensity", default: 0.5 },
+    },
+    gamma: {
+      intensity: { uniform: "u_intensity", default: 2.2 },
+    },
+    dither: {
+      intensity: { uniform: "u_intensity", default: 4.0 },
+    },
+    highlights: {
+      intensity: { uniform: "u_intensity", default: 0.5 },
     },
   }),
 ]);
