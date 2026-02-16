@@ -35,11 +35,11 @@ Seznam default uniforms se může v budoucích verzích rozšiřovat.
 Modul se definuje pomocí funkce `defineModule`. Source modulu je validní GLSL kód (nebo Sandbox-compilovatelný kód obsahující vlastní `#import` direktivy).
 
 ```ts
-import { defineModule } from '@aspect/sandbox'
+import { defineModule } from "@aspect/sandbox";
 
-export const effects = defineModule({
-  name: 'effects',
-  source: `
+Sandbox.defineModule(
+  "effects",
+  `
     uniform float u_intensity;
     uniform float u_radius;
     uniform float u_threshold;
@@ -53,17 +53,17 @@ export const effects = defineModule({
       // může interně volat helpers definované ve stejném source
     }
   `,
-  options: {
+  {
     blur: {
-      intensity: { uniform: 'u_intensity', default: 1.0 },
-      radius:    { uniform: 'u_radius',    default: 5.0 },
+      intensity: { uniform: "u_intensity", default: 1.0 },
+      radius: { uniform: "u_radius", default: 5.0 },
     },
     bloom: {
-      intensity: { uniform: 'u_intensity', default: 0.8 },
-      threshold: { uniform: 'u_threshold', default: 0.5 },
-    }
-  }
-})
+      intensity: { uniform: "u_intensity", default: 0.8 },
+      threshold: { uniform: "u_threshold", default: 0.5 },
+    },
+  },
+);
 ```
 
 #### Pravidla pro definici
@@ -74,25 +74,7 @@ export const effects = defineModule({
 - `options` je **volitelné** — modul bez options (čisté utility funkce jako `rand`, `rotate2d`) je validní use case. Takový modul nemá konfigurovatelné chování.
 - Různé metody v rámci jednoho modulu mohou odkazovat na stejný uniform v source (`u_intensity` u blur i bloom), ale díky per-import namespacingu budou v runtime nezávislé.
 
-#### Return type
-
-`defineModule` vrací typovanou instanci `Module<TOptions>`, která nese informaci o dostupných metodách a jejich options pro type-safe konfiguraci.
-
-### 2.2 Registrace modulů
-
-Moduly se registrují globálně, před jakýmkoliv použitím Sandboxu (typicky v `app.ts` nebo při bootu aplikace).
-
-```ts
-Sandbox.register(effects)
-Sandbox.register(noise)
-
-// Nebo hromadně
-Sandbox.register([effects, noise, vignette])
-```
-
-Registrace je globální — moduly nejsou per-instance.
-
-### 2.3 Import syntax v GLSL
+### 2.2 Import syntax v GLSL
 
 ```glsl
 #import <functionName> from '<moduleName>'
@@ -143,6 +125,7 @@ Ze všech extrahovaných funkcí (hlavní funkce + interní helper dependency st
 ### Krok 6: Přejmenování (namespacování)
 
 Prefix pro přejmenování se určuje podle:
+
 - Pokud import **nemá alias** → prefix = název funkce (např. `blur`)
 - Pokud import **má alias** → prefix = alias (např. `glow`, `softBlur`)
 
@@ -157,6 +140,7 @@ Přejmenování se aplikuje na:
 ### Krok 7: Vložení do výstupu
 
 Do finálního GLSL výstupu se vloží:
+
 1. Namespacované uniform deklarace (nahoře, deduplikované)
 2. Přejmenované helper funkce
 3. Přejmenovaná hlavní funkce
@@ -220,19 +204,12 @@ void main() {
 ```ts
 const sandbox = new Sandbox(canvas, {
   shader: myFragmentSource,
-  use: [effects, noise] as const,
   modules: {
-    blur:  { intensity: 0.5, radius: 8.0 },
-    glow:  { intensity: 0.9, threshold: 0.5 },
-  }
-})
+    blur: { intensity: 0.5, radius: 8.0 },
+    glow: { intensity: 0.9, threshold: 0.5 },
+  },
+});
 ```
-
-#### `use`
-
-Use používat nebudeme pokud to nebude vyloženě nutné. Je to řádek, který runtime nemá žádný vliv.
-
-Explicitní deklarace modulů použitých v tomto sandboxu. Slouží pro **type-safety** — TypeScript z pole `use` inferuje, jaké klíče a option typy jsou povolené v `modules`.
 
 #### `modules`
 
@@ -241,18 +218,16 @@ Per-import konfigurace. **Klíč je název importu nebo alias** (ne název modul
 #### Chování při chybějících hodnotách
 
 - Pokud option má `default` v definici modulu a uživatel ji nezadá → použije se default.
-- Pokud option **nemá** `default` a uživatel ji nezadá → **Sandbox vyhodí chybu** při inicializaci.
-- Pokud uživatel zadá option pro import, který v shaderu neexistuje → **Sandbox vyhodí chybu** (typo ochrana).
+- Pokud option **nemá** `default` a uživatel ji nezadá → **Sandbox neudělá nic** při inicializaci ale kod nebude fungovat.
+- Pokud uživatel zadá option pro import, který v shaderu neexistuje → **Sandbox vyhodí warning**.
 
 ### 4.2 Dynamické změny za runtime
 
 ```ts
-sandbox.module('blur').set({ intensity: 0.7, radius: 12.0 })
-sandbox.module('blur').set('intensity', 0.7)
-sandbox.module('blur').get('intensity')  // → 0.7
+sandbox.module("blur", { intensity: 0.7, radius: 12.0 });
 ```
 
-Interní mapování: `blur.intensity` → lookup v options `blur` → uniform `u_intensity` → namespacovaný `u_blur_intensity` → `gl.uniform1f(location, 0.7)`.
+Interní mapování: `blur.intensity` → lookup v options `blur` → uniform `u_intensity` → namespacovaný `u_blur_dj53dj_intensity` → `gl.uniform1f(location, 0.7)`.
 
 ### 4.3 Vztah k `setUniform`
 
@@ -267,9 +242,9 @@ Uživatel nemusí znát pojem "uniform" při práci s moduly — pracuje s konfi
 Source modulu může obsahovat vlastní `#import` direktivy:
 
 ```ts
-export const bloom = defineModule({
-  name: 'bloom',
-  source: `
+export const bloom = defineModule(
+  "bloom",
+  `
     #import blur from 'effects'
 
     uniform float u_threshold;
@@ -279,15 +254,28 @@ export const bloom = defineModule({
       // ... threshold logic
     }
   `,
-  options: {
+  {
     bloom: {
-      threshold: { uniform: 'u_threshold', default: 0.8 }
-    }
-  }
-})
+      threshold: { uniform: "u_threshold", default: 0.8 },
+    },
+  },
+);
 ```
 
 Preprocessor resolvuje dependency graf rekurzivně (krok 2 pipeline). Bloom závisí na blur z modulu effects → preprocessor vloží oboje.
+
+v options je možné použít `default` klíč pro nastavení všech funkcí najednou a potom jen přepisovat změny.
+
+```js
+{
+  default: {
+    uniform: "u_intensity", default: 1.0,
+  },
+  contrast: {
+    uniform: "u_intensity", default: 0.5,
+  }
+}
+```
 
 ### Konfigurace cascading dependencies
 
@@ -304,71 +292,16 @@ I když uživatel přímo importuje jen `bloom`, `blur` je jeho dependency a kon
 
 ---
 
-## 6. Type Safety
-
-### `defineModule` signature
-
-```ts
-type UniformType = number | number[]
-
-type ModuleOptionDef = {
-  uniform: string
-  default?: UniformType
-}
-
-type ModuleOptions = Record<string, Record<string, ModuleOptionDef>>
-
-function defineModule<
-  TName extends string,
-  TOptions extends ModuleOptions
->(config: {
-  name: TName
-  source: string
-  options?: TOptions
-}): Module<TName, TOptions>
-```
-
-### Sandbox constructor type inference
-
-```ts
-const sandbox = new Sandbox(canvas, {
-  shader: myShader,
-  use: [effects, noise] as const,
-  modules: {
-    blur:  { intensity: 0.5, radius: 8.0 },   // ✅ TS ví, že blur má intensity a radius
-    glow:  { intensity: 0.9, threshold: 0.5 }, // ✅ TS ví, že bloom (alias glow) má intensity a threshold
-    foo:   { bar: 1.0 },                       // ❌ TS error — foo není v use
-  }
-})
-```
-
-TypeScript z `use` pole inferuje:
-- Jaké moduly jsou dostupné
-- Jaké metody (a tedy import klíče) každý modul nabízí
-- Jaké options má každá metoda a jejich typy
-
-### `module()` accessor
-
-```ts
-sandbox.module('blur').set({ intensity: 0.7 })       // ✅ type-safe
-sandbox.module('blur').set({ nonexistent: 1.0 })      // ❌ TS error
-sandbox.module('blur').set('intensity', 0.7)           // ✅ type-safe
-sandbox.module('unknown').set({ intensity: 0.7 })      // ❌ TS error
-sandbox.module('blur').get('intensity')                 // ✅ returns number
-```
-
----
-
 ## 7. Error Handling
 
-| Situace | Chyba |
-|---------|-------|
-| `#import` odkazuje na neregistrovaný modul | `Module '<name>' is not registered. Did you forget to call Sandbox.register()?` |
-| `#import` odkazuje na neexistující funkci v modulu | `Function '<fn>' does not exist in module '<module>'. Available: <list>` |
+| Situace                                                 | Chyba                                                                                |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `#import` odkazuje na neregistrovaný modul              | `Module '<name>' is not registered. Did you forget to call Sandbox.register()?`      |
+| `#import` odkazuje na neexistující funkci v modulu      | `Function '<fn>' does not exist in module '<module>'. Available: <list>`             |
 | Chybí required option (bez default) v `modules` configu | `Module '<import>' requires option '<option>' but no value or default was provided.` |
-| Circular dependency mezi moduly | `Circular dependency detected: <module A> → <module B> → <module A>` |
-| Circular dependency uvnitř source (helper funkce) | `Circular function call detected in module '<module>': <fnA> → <fnB> → <fnA>` |
-| Config klíč neodpovídá žádnému importu v shaderu | `Module config key '<key>' does not match any import in the shader.` |
+| Circular dependency mezi moduly                         | `Circular dependency detected: <module A> → <module B> → <module A>`                 |
+| Circular dependency uvnitř source (helper funkce)       | `Circular function call detected in module '<module>': <fnA> → <fnB> → <fnA>`        |
+| Config klíč neodpovídá žádnému importu v shaderu        | `Module config key '<key>' does not match any import in the shader.`                 |
 
 ---
 
@@ -377,9 +310,71 @@ sandbox.module('blur').get('intensity')                 // ✅ returns number
 1. **Default uniforms se vkládají vždy** — bez analýzy usage, GLSL optimalizuje pryč.
 2. **Konfigurace je per-import (per-funkce), ne per-modul** — každý import má vlastní namespace uniforms.
 3. **Aliasing** (`as`) umožňuje importovat stejnou funkci vícekrát s různou konfigurací.
-4. **Namespacování uniforms** — preprocessor přepisuje uniform názvy podle import názvu/aliasu, aby nedocházelo ke kolizím.
+4. **Namespacování uniforms** — preprocessor přepisuje uniform názvy podle import názvu/aliasu + random string, aby nedocházelo ke kolizím.
 5. **Interní helper funkce** se přejmenují spolu s hlavní funkcí (tree-shaking + namespace).
 6. **Cascading dependencies** se konfigurují flat, ne nested.
 7. **`options` v `defineModule` je volitelné** — moduly bez konfigurovatelného chování jsou validní.
-8. **`use` pole v Sandbox constructoru** poskytuje type-safety pro `modules` config.
-9. **`setUniform` zůstává** pro custom uniforms; modulové uniforms se nastavují přes `module().set()`.
+8. **`setUniform` zůstává** pro custom uniforms; modulové uniforms se nastavují přes `module().set()`.
+
+# TODO?
+
+- změnit `#import` syntaxi na @import - vypadá to lépe
+- přidat `mention` syntax pomocí `@` pro importování uniform value přímo do kodu pro konkrétní funkci:
+
+příklad kodu:
+
+```glsl
+
+@import contrast from 'sandbox/filters';
+@import hex from 'sandbox/colors';
+
+void main() {
+  vec3 color = hex(0xff0000);
+
+  color = contrast(color, @contrast.intensity);
+
+  gl_FragColor = vec4(color, 1.0);
+}
+```
+
+zkompilovaný kod:
+
+```glsl
+
+uniform float u_contrast_h4iod3_intensity;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform vec2 u_mouse;
+uniform float u_delta;
+uniform float u_frame;
+
+vec3 hex(int hexValue) {
+  // ...
+}
+
+vec3 contrast(vec3 color, float intensity) {
+  // ...
+}
+
+void main() {
+  vec3 color = hex(0xff0000);
+
+  color = contrast(color, u_contrast_h4iod3_intensity);
+
+  gl_FragColor = vec4(color, 1.0);
+}
+```
+
+Realita bude taková, že kompilátor, když vidí `contrast()` volaný s jedním parametrem ale funkce je definovaná s dvěma a název se shoduje s uniform názvem tak doplní při volání do kodu tu uniform.
+
+takže `color = contrast(color)` → `color = contrast(color, u_contrast_h4iod3_intensity)`
+
+pouze pokud je contrast pojmenovaný takto:
+
+```glsl
+vec3 contrast(vec3 color, float intensity) {
+  // ...
+}
+```
+
+Parametr 2 matchuje type i název uniform `u_intensity`

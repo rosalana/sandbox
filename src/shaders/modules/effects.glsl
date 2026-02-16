@@ -20,6 +20,7 @@ vec2 pixelate(vec2 uv) {
  * Expects centered UV (use centerize first).
  * intensity = twist strength (0.4 = subtle, 1.0 = full spiral)
  * @uv-modifier
+ * #done
  */
 vec2 twist(vec2 uv) {
     float dist = length(uv);
@@ -32,6 +33,7 @@ vec2 twist(vec2 uv) {
  * Creates marble-like flowing patterns.
  * intensity = animation speed
  * @uv-modifier
+ * #done
  */
 vec2 organic(vec2 uv) {
     float speed = u_time * u_intensity;
