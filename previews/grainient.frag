@@ -7,10 +7,13 @@ precision highp float;
 #import aspect from 'sandbox'
 #import noise from 'sandbox'
 #import zoom from 'sandbox'
+#import scale from 'sandbox'
+#import norm from 'sandbox'
 
 // UV effects
 #import wobble from 'sandbox/effects'
 #import warp from 'sandbox/effects'
+#import twist from 'sandbox/effects'
 
 // Colors
 #import hex from 'sandbox/colors'
@@ -28,32 +31,28 @@ out vec4 fragColor;
 void main() {
     // UV pipeline
     vec2 uv = v_texcoord * u_resolution;
-    uv = center(uv);
-    uv = zoom(uv, 0.9);
-
-    // Noise-based rotation — flowing movement
-    float angle = (noise(vec2(u_time * 0.025, length(uv)) * 2.0) - 0.5) * 8.73;
-    uv = rotate(uv, angle);
 
     // Sine wave warping
-    uv = wobble(uv, 5.0);
+    uv = center(uv);
+    uv = scale(uv, 0.8);
+    uv = norm(uv);
+    uv = wobble(uv, 9.0 * max(sin(u_time * 0.5), 1.5));
 
     // Domain warp for organic flow
-    uv = warp(uv, 0.5);
 
     // 3-color gradient from warped UV
     vec3 color = gradient3(
-        hex(0xFF9FFC),
-        hex(0x5227FF),
-        hex(0xB19EEF),
+        hex(0x1E3A8A),  // blue-900
+        hex(0x60A5FA),  // blue-400
+        hex(0x1E40AF),  // blue-800
         length(uv) * 1.5 + 0.5
     );
 
     // Post-processing
-    color = grain(color, v_texcoord, 0.1);
-    color = contrast(color, 1.5);
-    color = saturate(color, 1.0);
-    color = gamma(color, 1.0);
+    color = grain(color, v_texcoord, 0.2);
+    color = contrast(color, 1.2);
+    // color = saturate(color, 2.0);
+    // color = gamma(color, 1.8);
 
     fragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
 }

@@ -64,6 +64,9 @@ export const modules = new ModuleRegistry([
     cells: {
       intensity: { uniform: "u_intensity", default: 8.0 },
     },
+    glass: {
+      intensity: { uniform: "u_intensity", default: 1.0 },
+    },
   }),
   new Module("sandbox/filters", filtersSource, {
     default: {

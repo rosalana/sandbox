@@ -129,6 +129,7 @@ UV-space modifiers. Each takes `vec2 uv` and returns modified `vec2`. All use `u
 | `displace`     | `vec2 displace(vec2 uv, float intensity)`     | `1.0`   | Noise-based displacement. Heat-haze look. Animated.             |
 | `shatter`      | `vec2 shatter(vec2 uv, float intensity)`      | `10.0`  | Voronoi cell snapping. Broken-glass look.                       |
 | `cells`        | `vec2 cells(vec2 uv, float intensity)`        | `8.0`   | Cellular distortion using Worley distance. Textured glass look. |
+| `glass`        | `vec2 glass(vec2 uv, float intensity)`        | `1.0`   | Liquid glass refraction. Smooth blobby lens distortion. Animated. Needs `center()`. |
 
 ---
 
