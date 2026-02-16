@@ -4,7 +4,6 @@ precision highp float;
 // UV transforms
 #import center from 'sandbox'
 #import rotate from 'sandbox'
-#import scale from 'sandbox'
 
 // Noise & patterns
 #import waves from 'sandbox'
@@ -26,7 +25,6 @@ void main() {
     // UV pipeline
     vec2 uv = v_texcoord * u_resolution;
     uv = center(uv);
-    uv = scale(uv, 5.0);
     uv = wobble(uv, 1.0);
 
     // Wave interference pattern — animated via UV offset

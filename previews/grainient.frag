@@ -3,17 +3,12 @@ precision highp float;
 
 // UV transforms
 #import center from 'sandbox'
-#import rotate from 'sandbox'
-#import aspect from 'sandbox'
-#import noise from 'sandbox'
-#import zoom from 'sandbox'
 #import scale from 'sandbox'
 #import norm from 'sandbox'
 
 // UV effects
 #import wobble from 'sandbox/effects'
 #import warp from 'sandbox/effects'
-#import twist from 'sandbox/effects'
 
 // Colors
 #import hex from 'sandbox/colors'
@@ -23,7 +18,6 @@ precision highp float;
 #import grain from 'sandbox/filters'
 #import contrast from 'sandbox/filters'
 #import saturate from 'sandbox/filters'
-#import gamma from 'sandbox/filters'
 
 in vec2 v_texcoord;
 out vec4 fragColor;
@@ -42,17 +36,16 @@ void main() {
 
     // 3-color gradient from warped UV
     vec3 color = gradient3(
-        hex(0x1E3A8A),  // blue-900
-        hex(0x60A5FA),  // blue-400
-        hex(0x1E40AF),  // blue-800
+        hex(0x0F172A),  // slate-900
+        hex(0x64748B),  // slate-500
+        hex(0x1E293B),  // slate-800
         length(uv) * 1.5 + 0.5
     );
 
     // Post-processing
     color = grain(color, v_texcoord, 0.2);
     color = contrast(color, 1.2);
-    // color = saturate(color, 2.0);
-    // color = gamma(color, 1.8);
+    color = saturate(color, 2.0);
 
     fragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
 }

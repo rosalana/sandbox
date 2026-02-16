@@ -192,37 +192,4 @@ vec2 cells(vec2 uv, float intensity) {
     return uv + grad * dist * 2.0;
 }
 
-/**
- * Glass — liquid glass refraction distortion.
- * Smooth blobby lens shapes that bend UV like looking through thick glass.
- * Slow animated flowing movement. Needs center().
- * intensity = refraction strength (0.5 = subtle lens, 2.0 = heavy distortion)
- * @uv-modifier
- */
-vec2 glass(vec2 uv, float intensity) {
-    vec2 p = uv * 3.0;
-    float t = u_time * 0.3;
-    float e = 0.01;
-
-    // Animated noise field — two octaves at different speeds
-    vec2 d1 = p + vec2(t, -t * 0.7);
-    vec2 d2 = p * 2.0 + vec2(-t * 0.5, t * 0.8);
-
-    // Height + offset samples for gradient computation
-    float h  = noise(d1) + noise(d2) * 0.5;
-    float hx = noise(d1 + vec2(e, 0.0)) + noise(d2 + vec2(e * 2.0, 0.0)) * 0.5;
-    float hy = noise(d1 + vec2(0.0, e)) + noise(d2 + vec2(0.0, e * 2.0)) * 0.5;
-
-    // Sharpen into rounded glass-blob shapes
-    float s1 = 0.35, s2 = 0.85;
-    h  = smoothstep(s1, s2, h * 0.667);
-    hx = smoothstep(s1, s2, hx * 0.667);
-    hy = smoothstep(s1, s2, hy * 0.667);
-
-    // Surface gradient → refraction offset
-    vec2 refraction = vec2(hx - h, hy - h) / e;
-
-    return uv + refraction * intensity * 0.02;
-}
-
 void main() {}
