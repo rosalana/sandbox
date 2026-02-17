@@ -217,13 +217,14 @@ export default class Parser {
 
       const fCalls = this.findFunctionCalls(body);
       const uCalls = this.findUniformCalls(body, uniforms);
+      const mCalls = this.findMentionCalls(body);
 
       functions.push({
         name,
         type: returnType as GLSLType,
         params,
         body,
-        dependencies: [...fCalls, ...uCalls],
+        dependencies: [...fCalls, ...uCalls, ...mCalls],
         line: lineNumber,
       });
     }
@@ -370,6 +371,26 @@ export default class Parser {
           index: match.index,
         });
       }
+    }
+
+    return calls;
+  }
+
+  private findMentionCalls(body: string): ShaderFunction["dependencies"] {
+    const calls: ShaderFunction["dependencies"] = [];
+
+    const mentionRegex = /@(\w+)\.([a-zA-Z_]\w*)/g;
+    let match;
+
+    while ((match = mentionRegex.exec(body)) !== null) {
+      const func = match[1];
+      const uniform = match[2];
+
+      calls.push({
+        name: `${func}.${uniform}`,
+        type: "mention",
+        index: match.index,
+      });
     }
 
     return calls;

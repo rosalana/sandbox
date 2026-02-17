@@ -48,7 +48,7 @@ export default class ModuleRegistry {
           const option = options[conf];
           if (
             option.default !== undefined &&
-            !content.uniforms.includes(option.uniform)
+            !content.uniforms.map((u) => u.name).includes(option.uniform)
           ) {
             uniformMap[option.uniform] = option.default;
           }

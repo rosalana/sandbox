@@ -1,4 +1,5 @@
 import {
+  GLSLType,
   ModuleDefinition,
   ModuleFunctionExtraction,
   ShaderFunction,
@@ -7,6 +8,9 @@ import {
   WebGLVersion,
 } from "../types";
 import {
+  SandboxMentionCouldNotBeReplacedError,
+  SandboxMentionFunctionNotFoundError,
+  SandboxMentionUniformNotFoundError,
   SandboxShaderRequirementMismatchError,
   SandboxShaderWithoutFunctionError,
 } from "../errors";
@@ -93,9 +97,55 @@ export default class Compilable {
   private processImports(): void {
     const content = this.original.parse();
 
+    const mentions = content.functions.flatMap((f) => {
+      return f.dependencies
+        .filter((d) => d.type === "mention")
+        .map((m) => ({
+          name: m.name.split(".")[0],
+          uniform: m.name.split(".")[1],
+        }));
+    });
+
     for (const imp of content.imports) {
       const module = MODULES.resolve(imp.module);
       const extraction = module.extract(imp.name);
+
+      let mentionsIn = mentions.filter(
+        (m) => m.name === extraction.function.name,
+      );
+
+      if (mentionsIn.length > 0) {
+        const moduleUniforms = module.getDefinition().uniforms;
+
+        mentionsIn = mentionsIn.filter((mI) => {
+          const uniform = moduleUniforms.find(
+            (u) => u.name === `u_${mI.uniform}` || u.name === mI.uniform,
+          );
+
+          if (uniform) {
+            if (
+              !extraction.dependencies.uniforms.some(
+                (u) => u.name === uniform.name,
+              )
+            ) {
+              extraction.dependencies.uniforms.push(uniform);
+            }
+            // Remove resolved mention from the array
+            const idx = mentions.indexOf(mI);
+            if (idx > -1) mentions.splice(idx, 1);
+            return false;
+          }
+          return true;
+        });
+
+        if (mentionsIn.length > 0) {
+          throw new SandboxMentionUniformNotFoundError(
+            imp.module,
+            extraction.function.name,
+            mentionsIn[0].uniform,
+          );
+        }
+      }
 
       // Copy the module to avoid mutating the original definition
       const copy = module.copy();
@@ -105,6 +155,13 @@ export default class Compilable {
 
       // Register the module in runtime modules for engine access
       RUNTIME_MODULES.merge(imp.module, copy);
+    }
+
+    if (mentions.length > 0) {
+      throw new SandboxMentionFunctionNotFoundError(
+        mentions[0].name,
+        mentions[0].uniform,
+      );
     }
   }
 
@@ -281,6 +338,43 @@ export default class Compilable {
     }
 
     result = result.replace(/\n{3,}/g, "\n\n");
+
+    result = this.replaceMentions(result, content);
+
+    return result;
+  }
+
+  private replaceMentions(source: string, content: ShaderParseResult): string {
+    let result = source;
+
+    const funcWithMentions = content.functions.filter((f) =>
+      f.dependencies.some((d) => d.type === "mention"),
+    );
+
+    for (const func of funcWithMentions) {
+      const mentions = func.dependencies.filter((d) => d.type === "mention");
+
+      for (const mention of mentions) {
+        const m = mention.name.split(".");
+
+        const nameRegex = new RegExp(`\\b${m[0]}_(\\w+)_${m[1]}\\b`, "g");
+
+        const key = this.requirements.uniforms
+          .keys()
+          .find((k) => k.match(nameRegex)?.[0] === k);
+
+        if (!key) {
+          throw new SandboxMentionCouldNotBeReplacedError(
+            mention.name,
+            func.name,
+          );
+        }
+
+        // replace mention to key, including @ symbol
+        const mentionRegex = new RegExp(`@\\b${mention.name}\\b`, "g");
+        result = result.replace(mentionRegex, key);
+      }
+    }
 
     return result;
   }

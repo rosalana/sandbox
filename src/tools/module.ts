@@ -102,7 +102,7 @@ export default class Module extends Compilable {
    */
   merge(module: Module): void {
     this.options = this.options || {};
-    const u = this.getDefinition().uniforms;
+    const u = this.getDefinition().uniforms.map((u) => u.name);
     // Merge options
     for (const [key, value] of Object.entries(module.options ?? {})) {
       if (!this.options[key]) this.options[key] = value;
@@ -127,7 +127,9 @@ export default class Module extends Compilable {
         .parse()
         .functions.map((f) => f.name)
         .filter((n) => n !== "main" && n !== "default"),
-      uniforms: this.compiled.parse().uniforms.map((u) => u.name),
+      uniforms: this.compiled.parse().uniforms.map((u) => {
+        return { name: u.name, type: u.type };
+      }),
       options: this.options,
     };
   }

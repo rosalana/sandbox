@@ -56,3 +56,40 @@ export class SandboxOverwriteModuleError extends SandboxError {
     );
   }
 }
+
+export class SandboxMentionUniformNotFoundError extends SandboxError {
+  constructor(
+    public readonly moduleName: string,
+    public readonly functionName: string,
+    public readonly uniformName: string,
+  ) {
+    super(
+      `Uniform '${uniformName}' mentioned for function '${functionName}' of module '${moduleName}' was not found among the module's declared uniforms. Check if the uniform is declared in the module source code or if the name is correct.`,
+      "MODULE_ERROR",
+    );
+  }
+}
+
+export class SandboxMentionFunctionNotFoundError extends SandboxError {
+  constructor(
+    public readonly functionName: string,
+    public readonly uniformName: string,
+  ) {
+    super(
+      `Uniform '${uniformName}' mentioned for function '${functionName}' was not imported from any module. Check if the function is imported from the correct module and if the uniform is declared in that module's source code with the correct name.`,
+      "MODULE_ERROR",
+    );
+  }
+}
+
+export class SandboxMentionCouldNotBeReplacedError extends SandboxError {
+  constructor(
+    public readonly mentionName: string,
+    public readonly calledInFunction: string,
+  ) {
+    super(
+      `Mention '${mentionName}' called in function '${calledInFunction}' could not be replaced with the corresponding uniform reference. There might be an issue with the compilation process because the referenced uniform was not found among the shader requirements. Try use a different name for uniforms you want to mention in functions or check if the uniform is properly declared and mentioned in the module source code.`,
+      "MODULE_ERROR",
+    )
+  }
+}

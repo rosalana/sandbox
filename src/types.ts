@@ -207,7 +207,7 @@ type ShaderFunctionDependency = {
   /** Name of the dependent */
   name: string;
   /** Type of dependency */
-  type: "function" | "uniform";
+  type: "function" | "uniform" | "mention";
   /** Character index from start of the function body for rewriting purposes */
   index?: number;
 };
