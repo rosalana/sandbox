@@ -20,11 +20,11 @@ It's **DX‑friendly**, small, and intentionally minimal — perfect for gradien
 
 | Library     | Minified | Gzipped   |
 | ----------- | -------- | --------- |
-| **Sandbox** | 57 KB    | **15 KB** |
+| **Sandbox** | 85 KB    | **23 KB** |
 | three.js    | 694 KB   | 175 KB    |
 | p5.js       | 1.1 MB   | 351 KB    |
 
-Sandbox is **~22x smaller** than three.js and **~44x smaller** than p5.js.
+Sandbox is **~8x smaller** than three.js and **~15x smaller** than p5.js.
 
 It works in both **WebGL1 and WebGL2** contexts, with automatic fallback and detection.
 
@@ -130,7 +130,7 @@ sandbox.renderAt(1.5);
 
 Let's be honest — writing GLSL from scratch is painful. Figuring out the right uniform declarations, copy-pasting utility functions from Shadertoy, wiring everything together... it's a lot of ceremony before you even see a pixel.
 
-Sandbox changes that. We built a **smart shader preprocessor** that lets you `#import` ready-made effects and utilities directly into your shader. No boilerplate, no manual uniform wiring. Just pick what you need and go.
+Sandbox gives you tools to help you write shaders faster and with less boilerplate. Define often-used GLSL snippets as reusable modules, then import them with a single line. Sandbox handles the rest — it figures out which uniforms you need, declares them, and injects everything into your final shader.
 
 ### Writing shaders
 
@@ -151,6 +151,33 @@ Sandbox detects WebGL version from your code (`#version 300 es` → WebGL2, no d
 ```ts
 sandbox.version; // 1 or 2
 ```
+
+### Shader Processing
+
+> ![IMPORTANT]
+> Sandbox's built-in GLSL functions are still in beta and can be change any time. 
+> We decided to publish them early anyway to get feedback and iterate on them. They're meant to be simple and cover common use cases.
+> If you have an idea how to improve them and make writing shaders easier, please open an issue or a pull request. Really appreciate your help on this.
+
+Sandbox processes your shader code before compiling. This compilation process includes only fragment shaders, vertex shaders are not processed.
+
+During processing, Sandbox looks for any `#import` statements and replaces them with the corresponding GLSL code from the registered modules. It also collects all the uniforms and other dependencies required by the imported functions and declares them in the final shader.
+
+> ![NOTE]
+>All written code is namespaced to avoid conflicts.
+
+Importing a function from a module can look like this:
+
+```glsl
+
+#import hex from "sandbox"
+
+void main() {
+  vec3 color = hex(0xFF5733);
+  fragColor = vec4(color, 1.0);
+}
+```
+
 
 ### Importing effects
 
