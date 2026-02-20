@@ -1,6 +1,6 @@
 {
   "name": "@rosalana/sandbox",
-  "version": "0.0.5",
+  "version": "0.1.0",
   "description": "Lightweight WebGL wrapper for simple, beautiful shader effects",
   "keywords": [
     "webgl",
