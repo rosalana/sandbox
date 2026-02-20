@@ -38,6 +38,11 @@ It works in both **WebGL1 and WebGL2** contexts, with automatic fallback and det
 - [Sandbox Shaders](#sandbox-shaders)
 - [Hooks](#hooks)
   - [Self-removing hooks](#self-removing-hooks)
+- [Textures](#textures)
+  - [Texture options](#texture-options)
+  - [Dynamic textures](#dynamic-textures)
+- [Export](#export)
+  - [Streaming](#streaming)
 - [Chaining](#chaining)
 - [Error handling](#error-handling)
 - [Vue integration](#vue-integration)
@@ -260,7 +265,10 @@ Sandbox.defineModule("my_gradient", gradientSource, {
   myFunc: {
     colors: {
       uniform: "u_colors",
-      default: [[1, 0, 0], [0, 0, 1]],
+      default: [
+        [1, 0, 0],
+        [0, 0, 1],
+      ],
     },
     speed: { uniform: "u_speed", default: 1.0 },
   },
@@ -276,7 +284,10 @@ Sandbox.defineModule("my_module", source, {
   default: {
     colors: {
       uniform: "u_colors",
-      default: [[1, 0, 0], [0, 0, 1]],
+      default: [
+        [1, 0, 0],
+        [0, 0, 1],
+      ],
     },
     speed: { uniform: "u_speed", default: 1.0 },
   },
@@ -336,6 +347,124 @@ sandbox.hook(({ time }) => {
 
 This is how `pauseAt()` works internally — it's hooks all the way down.
 
+## Textures
+
+Sandbox supports textures as `sampler2D` uniforms. Pass any image, canvas, or video element and Sandbox takes care of the WebGL plumbing — creating the texture, binding it to a texture unit, and setting the sampler uniform.
+
+```ts
+const img = new Image();
+img.src = "photo.jpg";
+img.onload = () => {
+  sandbox.setTexture("u_texture", img);
+};
+```
+
+Then sample it in your shader:
+
+```glsl
+uniform sampler2D u_texture;
+
+void main() {
+  vec4 color = texture2D(u_texture, v_texcoord);
+  gl_FragColor = color;
+}
+```
+
+Multiple textures work the same way — each gets its own texture unit automatically:
+
+```ts
+sandbox.setTexture("u_photo", photoImg);
+sandbox.setTexture("u_mask", maskImg);
+```
+
+You can also set textures upfront via options:
+
+```ts
+Sandbox.create(canvas, {
+  fragment: shader,
+  textures: {
+    u_photo: photoImg,
+    u_mask: { source: maskImg, wrap: "repeat" },
+  },
+});
+```
+
+### Texture options
+
+Each texture accepts optional configuration for wrapping, filtering, and orientation:
+
+```ts
+sandbox.setTexture("u_texture", img, {
+  wrap: "repeat", // both axes (default: "clamp")
+  minFilter: "nearest", // pixelated look (default: "linear")
+  flipY: false, // disable vertical flip (default: true)
+});
+```
+
+| Option      | Values                             | Default    |
+| ----------- | ---------------------------------- | ---------- |
+| `wrap`      | `"clamp"`, `"repeat"`, `"mirror"`  | `"clamp"`  |
+| `wrapS`     | same (overrides `wrap` for S axis) | `wrap`     |
+| `wrapT`     | same (overrides `wrap` for T axis) | `wrap`     |
+| `minFilter` | `"nearest"`, `"linear"`            | `"linear"` |
+| `magFilter` | `"nearest"`, `"linear"`            | `"linear"` |
+| `flipY`     | `boolean`                          | `true`     |
+| `dynamic`   | `boolean`                          | auto       |
+
+### Dynamic textures
+
+When you pass a video element, Sandbox automatically re-uploads pixels every frame so the texture stays in sync with playback. This also works for animated canvases — just set `dynamic: true`:
+
+```ts
+// Video — dynamic by default
+sandbox.setTexture("u_video", videoElement);
+
+// Animated canvas — opt in
+sandbox.setTexture("u_canvas", canvasElement, { dynamic: true });
+```
+
+To remove a texture and free its GPU memory:
+
+```ts
+sandbox.removeTexture("u_texture");
+```
+
+## Export
+
+Sandbox can export the current frame as an image or blob — useful for saving screenshots, generating thumbnails, or uploading processed images to a server.
+
+```ts
+// Data URL (synchronous)
+const url = sandbox.renderAt(1.5).exportAsURL("image/png");
+
+// Blob (async) — perfect for server uploads
+const blob = await sandbox.renderAt(1.5).exportAsBlob("image/jpeg", 0.9);
+await fetch("/upload", { method: "POST", body: blob });
+
+// HTMLImageElement
+const img = sandbox.renderAt(1.5).exportAsImage("image/png");
+document.body.appendChild(img);
+```
+
+> [!NOTE]
+> Export methods work reliably after `render()` or `renderAt()`. If you need to capture frames during an active render loop, set `preserveDrawingBuffer: true` in options.
+
+### Streaming
+
+For real-time use cases like video calls or recording, Sandbox can expose the canvas as a `MediaStream`:
+
+```ts
+// WebRTC — send shader output to a video call
+const stream = sandbox.stream(30);
+peerConnection.addTrack(stream.getVideoTracks()[0], stream);
+
+// Recording — save as video file
+const recorder = new MediaRecorder(sandbox.stream(30));
+recorder.start();
+```
+
+This opens up workflows like **webcam → texture → shader effect → video call** with just a few lines of code.
+
 ## Chaining
 
 Every method returns `this`, so you can chain calls for clean, expressive code:
@@ -373,6 +502,7 @@ The error object includes useful details:
 | `PROGRAM_ERROR`    | Shader program linking failed                                                         |
 | `VALIDATION_ERROR` | Vertex/fragment shader version mismatch                                               |
 | `MODULE_ERROR`     | Module not found, method not found, forbidden name, or duplicate definition           |
+| `TEXTURE_ERROR`    | Texture creation failed or texture unit limit exceeded                                |
 | `UNKNOWN_ERROR`    | Unexpected error in callbacks (onLoad, hooks)                                         |
 
 ## Vue integration
@@ -443,6 +573,7 @@ interface SandboxOptions {
   onAfterRender?: HookCallback | null;
   uniforms?: UniformSchema;
   modules?: Record<string, Record<string, AnyUniformValue>>;
+  textures?: TextureSchema;
 }
 ```
 
@@ -462,12 +593,13 @@ interface SandboxOptions {
 | `onAfterRender`         | —               | Hook after each frame                          |
 | `uniforms`              | —               | Initial uniform values                         |
 | `modules`               | —               | Configure module options per imported function |
+| `textures`              | —               | Initial textures to bind to sampler uniforms   |
 
 ## Limitations (by design)
 
-- No textures (planned for future)
 - No multi‑pass rendering
 - No 3D scene graph
+- No custom geometry (fullscreen quad only)
 
 If you need a full engine, reach for three.js. For clean shader‑only effects, Sandbox is a joy to use.
 
