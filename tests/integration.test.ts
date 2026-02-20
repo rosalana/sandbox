@@ -280,19 +280,19 @@ describe("Integration — built-in sandbox module", () => {
     expect(compiled).toContain("hash");
   });
 
-  it("imports vignette from sandbox/effects with options in runtime", () => {
+  it("imports pixelate from sandbox/effects with options in runtime", () => {
     const shader = new Shader(`
-      #import vignette from 'sandbox/effects'
+      #import pixelate from 'sandbox/effects'
       void main() {
         vec2 uv = gl_FragCoord.xy / u_resolution;
-        float v = vignette(uv);
+        float v = pixelate(uv);
         gl_FragColor = vec4(vec3(v), 1.0);
       }
     `);
 
     shader.compile();
 
-    const opts = RUNTIME_MODULES.resolveOptions("vignette");
+    const opts = RUNTIME_MODULES.resolveOptions("pixelate");
     expect(opts).not.toBeNull();
     expect(opts!.intensity).toBeDefined();
     expect(opts!.intensity.uniform).toContain("u_intensity");

@@ -6,7 +6,7 @@ import Module from "../src/tools/module";
 import {
   SandboxModuleNotFoundError,
   SandboxModuleMethodNotFoundError,
-  SandboxAtemptedToImportMainFunctionError,
+  SandboxAttemptedToImportMainFunctionError,
   SandboxForbiddenModuleNameError,
   SandboxOverwriteModuleError,
 } from "../src/errors";
@@ -119,7 +119,7 @@ describe("Module.extract", () => {
     });
 
     expect(() => mod.extract("main")).toThrow(
-      SandboxAtemptedToImportMainFunctionError,
+      SandboxAttemptedToImportMainFunctionError,
     );
     cleanupModule("test_no_main");
   });
