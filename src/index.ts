@@ -323,7 +323,11 @@ export class Sandbox {
    * sandbox.setTexture("u_texture", imageElement);
    * sandbox.setTexture("u_texture", imageElement, { wrap: "repeat" });
    */
-  setTexture(name: string, source: TextureSource, options?: TextureOptions): this {
+  setTexture(
+    name: string,
+    source: TextureSource,
+    options?: TextureOptions,
+  ): this {
     this.engine.texture(name, source, options);
     return this;
   }
@@ -564,6 +568,75 @@ export class Sandbox {
    */
   get canvas(): HTMLCanvasElement {
     return this.canvasEl;
+  }
+
+  /**
+   * Export current frame as a data URL string.
+   * Requires `preserveDrawingBuffer: true` if called while playing.
+   * @example
+   * const url = sandbox.renderAt(1.5).exportAsURL("image/png");
+   */
+  exportAsURL(
+    type: "image/png" | "image/jpeg" = "image/png",
+    quality?: number,
+  ): string {
+    return this.canvas.toDataURL(type, quality);
+  }
+
+  /**
+   * Export current frame as a Blob.
+   * Requires `preserveDrawingBuffer: true` if called while playing.
+   * @example
+   * const blob = await sandbox.renderAt(1.5).exportAsBlob("image/png");
+   */
+  exportAsBlob(
+    type: "image/png" | "image/jpeg" = "image/png",
+    quality?: number,
+  ): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      this.canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error("Failed to create blob from canvas."));
+          }
+        },
+        type,
+        quality,
+      );
+    });
+  }
+
+  /**
+   * Export current frame as an HTMLImageElement.
+   * Requires `preserveDrawingBuffer: true` if called while playing.
+   * @example
+   * const img = sandbox.renderAt(1.5).exportAsImage("image/png");
+   * img.onload = () => document.body.appendChild(img);
+   */
+  exportAsImage(
+    type: "image/png" | "image/jpeg" = "image/png",
+    quality?: number,
+  ): HTMLImageElement {
+    const img = new Image();
+    img.src = this.exportAsURL(type, quality);
+    return img;
+  }
+
+  /**
+   * Capture the canvas as a MediaStream for video calls or recording.
+   * @example
+   * // WebRTC video call
+   * const stream = sandbox.stream(30);
+   * peerConnection.addTrack(stream.getVideoTracks()[0], stream);
+   *
+   * @example
+   * // Record to video file
+   * const recorder = new MediaRecorder(sandbox.stream(30));
+   */
+  stream(fps?: number): MediaStream {
+    return this.canvasEl.captureStream(fps);
   }
 
   /**
