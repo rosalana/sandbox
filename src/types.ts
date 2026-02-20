@@ -1,4 +1,5 @@
 import type { SandboxError } from "./errors";
+import Shader from "./tools/shader";
 
 /** Sandbox configuration options */
 export interface SandboxOptions {
@@ -28,10 +29,18 @@ export interface SandboxOptions {
   onAfterRender?: HookCallback | null;
   /** Initial uniforms to set */
   uniforms?: UniformSchema;
+  /** Configure used modules behavior */
+  modules?: Record<string, Record<string, AnyUniformValue>>;
 }
 
 /** Resolved sandbox options with all defaults applied */
-export type ResolvedSandboxOptions = Required<SandboxOptions>;
+export type ResolvedSandboxOptions = Omit<
+  Required<SandboxOptions>,
+  "vertex" | "fragment"
+> & {
+  vertex: Shader;
+  fragment: Shader;
+};
 
 /** WebGL version (1 = WebGL, 2 = WebGL2) */
 export type WebGLVersion = 1 | 2;
@@ -147,3 +156,109 @@ export type DrawMode = "TRIANGLES" | "TRIANGLE_STRIP" | "TRIANGLE_FAN";
 
 /** Render callback signature */
 export type HookCallback = (clock: ClockState) => void | false;
+
+/** GLSL uniform types */
+export type GLSLType =
+  | "float"
+  | "int"
+  | "bool"
+  | "vec2"
+  | "vec3"
+  | "vec4"
+  | "ivec2"
+  | "ivec3"
+  | "ivec4"
+  | "bvec2"
+  | "bvec3"
+  | "bvec4"
+  | "mat2"
+  | "mat3"
+  | "mat4"
+  | "sampler2D"
+  | "samplerCube";
+
+export type GLSLVariable = {
+  /** Variable name */
+  name: string;
+  /** GLSL type */
+  type: GLSLType;
+};
+
+/** Import statement parsed from shader */
+export type ShaderImport = {
+  /** Module identifier (e.g., "sandbox/math") */
+  module: string;
+  /** Original function name in module */
+  name: string;
+  /** Alias to use in shader (defaults to name) */
+  alias: string;
+  /** Line number where import appears */
+  line?: number;
+};
+
+export type ShaderUniform = GLSLVariable & {
+  /** Line number where import appears */
+  name: "u_time" | "u_resolution" | "u_delta" | "u_mouse" | "u_frame" | string;
+  arrayNum?: number; // For array uniforms like u_colors[10]
+  line?: number;
+};
+
+type ShaderFunctionDependency = {
+  /** Name of the dependent */
+  name: string;
+  /** Type of dependency */
+  type: "function" | "uniform" | "mention";
+  /** Character index from start of the function body for rewriting purposes */
+  index?: number;
+};
+
+export type ShaderFunction = {
+  /** Function name */
+  name: string;
+  /** Return type */
+  type: GLSLType;
+  /** Function parameters */
+  params: GLSLVariable[];
+  /** Function body (including braces) */
+  body: string;
+  /** List of dependencies (functions or uniforms) this function has */
+  dependencies: ShaderFunctionDependency[];
+  /** Line number where function is declared */
+  line?: number;
+};
+
+export type ShaderParseResult = {
+  /** All imports found in shader */
+  imports: ShaderImport[];
+  /** All uniforms declared in shader */
+  uniforms: ShaderUniform[];
+  /** All functions declared in shader */
+  functions: ShaderFunction[];
+  /** GLSL version */
+  version: WebGLVersion;
+};
+
+export interface ModuleDefinition {
+  /** Module name */
+  name: string;
+  /** GLSL source code containing functions */
+  source: string;
+  /**
+   * Options per-function if the module has custom uniforms that can be used to configure methods behavior.
+   * The key is the function name.
+   * For each function set the option name and link it to a uniform with optional default value.
+   */
+  options?: Record<string, Record<string, ModuleMethodOption>>;
+}
+
+export type ModuleMethodOption = { uniform: string; default?: AnyUniformValue };
+
+export type ModuleFunctionExtraction = {
+  /** Extracted function definition */
+  function: ShaderFunction;
+  /** All dependencies (functions and uniforms) required by this function */
+  dependencies: {
+    functions: ShaderFunction[];
+    uniforms: ShaderUniform[];
+  };
+};

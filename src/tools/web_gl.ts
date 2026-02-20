@@ -7,12 +7,19 @@ import type {
   WebGLContext,
   WebGLVersion,
 } from "../types";
-import { SandboxContextError, SandboxError } from "../errors";
+import {
+  SandboxError,
+  SandboxOnLoadCallbackError,
+  SandboxShaderVersionMismatchError,
+  SandboxWebGLNotSupportedError,
+} from "../errors";
 import Clock from "./clock";
 import Geometry from "./geometry";
 import Program from "./program";
 import Uniforms from "./uniforms";
 import Hooks from "./hooks";
+import Shader from "./shader";
+import { runtime_modules as RUNTIME_MODULES } from "../globals";
 
 /**
  * Main WebGL orchestrator.
@@ -92,6 +99,11 @@ export default class WebGL {
       webgl._uniforms.setMany(options.uniforms);
     }
 
+    // Set module default uniform values
+    if (!RUNTIME_MODULES.isEmpty()) {
+      webgl._uniforms.setMany(RUNTIME_MODULES.defaults());
+    }
+
     return webgl;
   }
 
@@ -124,7 +136,7 @@ export default class WebGL {
     }
 
     // WebGL not supported - fatal error
-    const error = new SandboxContextError("not_supported");
+    const error = new SandboxWebGLNotSupportedError();
     this.options.onError(error);
     throw error;
   }
@@ -200,13 +212,24 @@ export default class WebGL {
    * Compile and link shaders.
    * Errors are handled via onError callback, never thrown.
    */
-  shader(vertex: string, fragment: string): this {
+  shader(vertex: Shader, fragment: Shader): this {
     try {
-      // Compile program
-      this._program.compile(vertex, fragment);
+      // Clear runtime modules before shader compilation to avoid stale modules from previous shaders
+      RUNTIME_MODULES.clear();
+
+      // Check version compatibility
+      if (vertex.version() !== fragment.version()) {
+        throw new SandboxShaderVersionMismatchError(
+          vertex.version(),
+          fragment.version(),
+        );
+      }
+
+      // Compile and link program
+      this._program.compile(vertex.source(), fragment.compile());
 
       // Update version based on shaders
-      this._version = this._program.getVersion();
+      this._version = fragment.version();
 
       // Link attributes to geometry
       this._geometry.linkAttributes(this._program);
@@ -218,7 +241,13 @@ export default class WebGL {
       }
 
       // Call onLoad callback after successful shader setup
-      this.options.onLoad();
+      try {
+        this.options.onLoad();
+      } catch (error) {
+        throw new SandboxOnLoadCallbackError(
+          error instanceof Error ? error.message : String(error),
+        );
+      }
     } catch (error) {
       if (error instanceof SandboxError) {
         this.options.onError(error);
@@ -248,13 +277,24 @@ export default class WebGL {
 
     const state = this._clock.getState();
 
-    this.onBeforeHooks.run(state);
+    try {
+      this.onBeforeHooks.run(state);
+    } catch (error) {
+      if (error instanceof SandboxError) {
+        this.options.onError(error);
+      }
+    }
 
     this.playing = false;
     this._clock.stop();
 
-    this.onAfterHooks.run(state);
-
+    try {
+      this.onAfterHooks.run(state);
+    } catch (error) {
+      if (error instanceof SandboxError) {
+        this.options.onError(error);
+      }
+    }
     return this;
   }
 
@@ -298,6 +338,7 @@ export default class WebGL {
     this._uniforms.destroy();
     this.onAfterHooks.destroy();
     this.onBeforeHooks.destroy();
+    RUNTIME_MODULES.clear();
   }
 
   /**
@@ -307,7 +348,13 @@ export default class WebGL {
     const gl = this.gl;
 
     // Call before render callback
-    this.onBeforeHooks.run(state);
+    try {
+      this.onBeforeHooks.run(state);
+    } catch (error) {
+      if (error instanceof SandboxError) {
+        this.options.onError(error);
+      }
+    }
 
     // Clear canvas
     gl.clearColor(0, 0, 0, 0);
@@ -327,6 +374,12 @@ export default class WebGL {
     this._geometry.draw();
 
     // Call after render callback
-    this.onAfterHooks.run(state);
+    try {
+      this.onAfterHooks.run(state);
+    } catch (error) {
+      if (error instanceof SandboxError) {
+        this.options.onError(error);
+      }
+    }
   }
 }

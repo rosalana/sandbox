@@ -1,32 +1,20 @@
-import type { WebGLContext, WebGLVersion } from "../types";
+import type { WebGLContext } from "../types";
 import {
   SandboxProgramError,
-  SandboxShaderCompilationError,
-  SandboxShaderVersionMismatchError,
+  SandboxGLSLShaderCompilationError,
 } from "../errors";
 
 /**
  * Manages shader compilation and program linking.
- * Automatically detects WebGL version from shader source.
  */
 export default class Program {
   private gl: WebGLContext;
   private program: WebGLProgram | null = null;
   private vertexShader: WebGLShader | null = null;
   private fragmentShader: WebGLShader | null = null;
-  private version: WebGLVersion = 1;
 
   constructor(gl: WebGLContext) {
     this.gl = gl;
-  }
-
-  /**
-   * Detect WebGL version from shader source.
-   * Looks for "#version 300 es" directive.
-   */
-  static detectVersion(source: string): WebGLVersion {
-    // Match "#version 300 es" at the start of a line
-    return /^\s*#version\s+300\s+es/m.test(source) ? 2 : 1;
   }
 
   /**
@@ -37,16 +25,6 @@ export default class Program {
   compile(vertexSource: string, fragmentSource: string): this {
     // Clean up previous program if exists
     this.destroy();
-
-    // Detect version from shaders
-    const vertVersion = Program.detectVersion(vertexSource);
-    const fragVersion = Program.detectVersion(fragmentSource);
-
-    if (vertVersion != fragVersion) {
-      throw new SandboxShaderVersionMismatchError(vertVersion, fragVersion);
-    }
-
-    this.version = Math.max(vertVersion, fragVersion) as WebGLVersion;
 
     // Compile shaders
     this.vertexShader = this.compileShader("vertex", vertexSource);
@@ -73,13 +51,6 @@ export default class Program {
    */
   getProgram(): WebGLProgram | null {
     return this.program;
-  }
-
-  /**
-   * Get detected WebGL version.
-   */
-  getVersion(): WebGLVersion {
-    return this.version;
   }
 
   /**
@@ -140,7 +111,7 @@ export default class Program {
 
     const shader = gl.createShader(glType);
     if (!shader) {
-      throw new SandboxShaderCompilationError(
+      throw new SandboxGLSLShaderCompilationError(
         type,
         source,
         "Failed to create shader object",
@@ -155,7 +126,7 @@ export default class Program {
     if (!compiled) {
       const infoLog = gl.getShaderInfoLog(shader) || "Unknown error";
       gl.deleteShader(shader);
-      throw new SandboxShaderCompilationError(type, source, infoLog);
+      throw new SandboxGLSLShaderCompilationError(type, source, infoLog);
     }
 
     return shader;

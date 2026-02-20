@@ -1,3 +1,4 @@
+import { SandboxOnHookCallbackError } from "../errors";
 import { ClockState, HookCallback } from "../types";
 
 export default class Hooks {
@@ -22,8 +23,15 @@ export default class Hooks {
   /** Run all hooks with the given state */
   public run(state: ClockState): void {
     for (const [id, hook] of this.hooks) {
-      if (hook(state) === false) {
-        this.remove(id);
+      try {
+        if (hook(state) === false) {
+          this.remove(id);
+        }
+      } catch (error) {
+        throw new SandboxOnHookCallbackError(
+          id,
+          error instanceof Error ? error.message : String(error),
+        );
       }
     }
   }

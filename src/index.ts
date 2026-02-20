@@ -1,6 +1,7 @@
 import type {
   AnyUniformValue,
   HookCallback,
+  ModuleDefinition,
   ResolvedSandboxOptions,
   SandboxOptions,
   UniformSchema,
@@ -10,7 +11,10 @@ import { SandboxError } from "./errors";
 
 import Listener from "./tools/listener";
 import WebGL from "./tools/web_gl";
-import Program from "./tools/program";
+import Module from "./tools/module";
+import Shader from "./tools/shader";
+import { modules as MODULES } from "./globals";
+import { runtime_modules as RUNTIME_MODULES } from "./globals";
 
 export * from "./types";
 export * from "./errors";
@@ -60,6 +64,12 @@ export class Sandbox {
     this.setupListeners();
     this.setViewport();
 
+    if (this.options.modules) {
+      for (const [name, config] of Object.entries(this.options.modules)) {
+        this.module(name, config);
+      }
+    }
+
     if (this.options.autoplay) {
       this.play();
     }
@@ -87,10 +97,43 @@ export class Sandbox {
     return new Sandbox(canvas, options);
   }
 
+  /**
+   * Define a shader module that can be imported in shader source with `#import <function> from "module_name"`.
+   * @example
+   * Sandbox.defineModule("my_module", source, { options });
+   * // Then in shader:
+   * // #import myFunc from "my_module"
+   * // void main() {
+   * //   myFunc();
+   * // }
+   */
+  static defineModule(
+    name: ModuleDefinition["name"],
+    source: ModuleDefinition["source"],
+    options: ModuleDefinition["options"] = {},
+  ): void {
+    Module.define({ name, source, options });
+  }
+
+  /**
+   * Get the list of available shader modules that can be used with `#import` in shader source.
+   */
+  static availableModules() {
+    return MODULES.available();
+  }
+
+  /**
+   * Compile a shader source with Sandbox's shader preprocessor and return the final GLSL code.
+   * This is useful for debugging shader code or precompiling shaders for production use.
+   */
+  static compile(shaderSource: string): string {
+    return new Shader(shaderSource).compile();
+  }
+
   private resolveOptions(options?: SandboxOptions): ResolvedSandboxOptions {
     const defaults = {
-      vertex: WebGL1_Vert,
-      fragment: WebGL1_Frag,
+      vertex: new Shader(WebGL1_Vert),
+      fragment: new Shader(WebGL1_Frag),
       autoplay: true,
       pauseWhenHidden: true,
       dpr: "auto" as "auto",
@@ -108,25 +151,35 @@ export class Sandbox {
       onBeforeRender: null,
       onAfterRender: null,
       uniforms: {},
+      modules: {},
     };
 
     if (options?.vertex) this.usingCustomVertex = true;
 
     // If only vertex is provided, set matching fragment
     if (options?.vertex && !options?.fragment) {
-      const version = Program.detectVersion(options.vertex);
-      defaults.vertex = options.vertex;
-      defaults.fragment = version === 2 ? WebGL2_Frag : WebGL1_Frag;
+      defaults.vertex = new Shader(options.vertex);
+      const version = defaults.vertex.version();
+      defaults.fragment = new Shader(version === 2 ? WebGL2_Frag : WebGL1_Frag);
     }
 
     // If only fragment is provided, set matching vertex
     if (options?.fragment && !options?.vertex) {
-      const version = Program.detectVersion(options.fragment);
-      defaults.fragment = options.fragment;
-      defaults.vertex = version === 2 ? WebGL2_Vert : WebGL1_Vert;
+      defaults.fragment = new Shader(options.fragment);
+      const version = defaults.fragment.version();
+      defaults.vertex = new Shader(version === 2 ? WebGL2_Vert : WebGL1_Vert);
     }
 
-    return { ...defaults, ...options };
+    // If both provided make them as class instances
+    if (options?.vertex && options?.fragment) {
+      defaults.vertex = new Shader(options.vertex);
+      defaults.fragment = new Shader(options.fragment);
+    }
+
+    // Clean up vertex and fragment from options before merging
+    const { vertex, fragment, ...restOptions } = options || {};
+
+    return { ...defaults, ...restOptions };
   }
 
   private setupListeners(): void {
@@ -267,8 +320,8 @@ export class Sandbox {
    */
   setShader(vertex: string, fragment: string): this {
     // Update options
-    this.options.vertex = vertex;
-    this.options.fragment = fragment;
+    this.options.vertex = new Shader(vertex);
+    this.options.fragment = new Shader(fragment);
 
     // Mark as custom shader
     this.usingCustomVertex = true;
@@ -284,16 +337,19 @@ export class Sandbox {
    */
   setFragment(fragment: string): this {
     // Detect versions
-    const fragVersion = Program.detectVersion(fragment);
-    const vertVersion = Program.detectVersion(this.options.vertex);
+    const frag = new Shader(fragment);
+    const fragVersion = frag.version();
+    const vertVersion = this.options.vertex.version();
 
     // Update options
-    this.options.fragment = fragment;
+    this.options.fragment = frag;
 
     if (fragVersion !== vertVersion) {
       if (!this.usingCustomVertex) {
         // Auto-switch only if not using custom vertex shader
-        this.options.vertex = fragVersion === 2 ? WebGL2_Vert : WebGL1_Vert;
+        this.options.vertex = new Shader(
+          fragVersion === 2 ? WebGL2_Vert : WebGL1_Vert,
+        );
       }
     }
 
@@ -302,8 +358,22 @@ export class Sandbox {
   }
 
   /**
+   * Get current fragment shader source.
+   */
+  getFragment(): string {
+    return this.options.fragment.source();
+  }
+
+  /**
+   * Get current vertex shader source.
+   */
+  getVertex(): string {
+    return this.options.vertex.source();
+  }
+
+  /**
    * Set the max frame rate runtime
-   * 
+   *
    * @example
    * sandbox.setFps(30); // Limit to 30 FPS
    * sandbox.setFps(0);  // Unlimited FPS
@@ -322,6 +392,39 @@ export class Sandbox {
     } else {
       return this.engine.onAfterHooks.add(callback);
     }
+  }
+
+  /**
+   * Runtime configure the module behavior
+   * @example
+   * sandbox.module("my_module", { intensity: 0.5 });
+   */
+  module<T extends Record<string, AnyUniformValue>>(
+    name: string,
+    config: T,
+  ): this {
+    const options = RUNTIME_MODULES.resolveOptions(name);
+
+    if (!options) {
+      console.warn(
+        `Sandbox: Counld not find options for '${name}' function. Make sure you used the correct imported name and the module is currently in use by the shader.`,
+      );
+      return this;
+    }
+
+    for (const [key, value] of Object.entries(config)) {
+      const option = options[key];
+      if (!option) {
+        console.warn(
+          `Sandbox: Option '${key}' not found for function '${name}'. Make sure to check available options with Sandbox.availableModules() and provide the correct option name.`,
+        );
+        continue;
+      }
+
+      this.setUniform(option.uniform, value);
+    }
+
+    return this;
   }
 
   /**
