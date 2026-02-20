@@ -4,6 +4,9 @@ import type {
   ModuleDefinition,
   ResolvedSandboxOptions,
   SandboxOptions,
+  TextureOptions,
+  TextureSchema,
+  TextureSource,
   UniformSchema,
   WebGLVersion,
 } from "./types";
@@ -152,6 +155,7 @@ export class Sandbox {
       onAfterRender: null,
       uniforms: {},
       modules: {},
+      textures: {},
     };
 
     if (options?.vertex) this.usingCustomVertex = true;
@@ -311,6 +315,40 @@ export class Sandbox {
    */
   getUniform<T extends AnyUniformValue>(name: string): T | undefined {
     return this.engine.getUniform<T>(name);
+  }
+
+  /**
+   * Set a texture for a sampler2D uniform.
+   * @example
+   * sandbox.setTexture("u_texture", imageElement);
+   * sandbox.setTexture("u_texture", imageElement, { wrap: "repeat" });
+   */
+  setTexture(name: string, source: TextureSource, options?: TextureOptions): this {
+    this.engine.texture(name, source, options);
+    return this;
+  }
+
+  /**
+   * Set multiple textures at once.
+   * @example
+   * sandbox.setTextures({
+   *   u_texture: imageElement,
+   *   u_detail: { source: detailImg, wrap: "repeat" },
+   * });
+   */
+  setTextures(textures: TextureSchema): this {
+    this.engine.texturesFromSchema(textures);
+    return this;
+  }
+
+  /**
+   * Remove a texture and free its GPU resources.
+   * @example
+   * sandbox.removeTexture("u_texture");
+   */
+  removeTexture(name: string): this {
+    this.engine.removeTexture(name);
+    return this;
   }
 
   /**

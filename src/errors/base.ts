@@ -4,6 +4,7 @@ export type SandboxErrorCode =
   | "PROGRAM_ERROR"
   | "SHADER_ERROR"
   | "MODULE_ERROR"
+  | "TEXTURE_ERROR"
   | "UNKNOWN_ERROR";
 
 export class SandboxError extends Error {
