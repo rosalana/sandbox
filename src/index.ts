@@ -4,6 +4,9 @@ import type {
   ModuleDefinition,
   ResolvedSandboxOptions,
   SandboxOptions,
+  TextureOptions,
+  TextureSchema,
+  TextureSource,
   UniformSchema,
   WebGLVersion,
 } from "./types";
@@ -152,6 +155,7 @@ export class Sandbox {
       onAfterRender: null,
       uniforms: {},
       modules: {},
+      textures: {},
     };
 
     if (options?.vertex) this.usingCustomVertex = true;
@@ -311,6 +315,44 @@ export class Sandbox {
    */
   getUniform<T extends AnyUniformValue>(name: string): T | undefined {
     return this.engine.getUniform<T>(name);
+  }
+
+  /**
+   * Set a texture for a sampler2D uniform.
+   * @example
+   * sandbox.setTexture("u_texture", imageElement);
+   * sandbox.setTexture("u_texture", imageElement, { wrap: "repeat" });
+   */
+  setTexture(
+    name: string,
+    source: TextureSource,
+    options?: TextureOptions,
+  ): this {
+    this.engine.texture(name, source, options);
+    return this;
+  }
+
+  /**
+   * Set multiple textures at once.
+   * @example
+   * sandbox.setTextures({
+   *   u_texture: imageElement,
+   *   u_detail: { source: detailImg, wrap: "repeat" },
+   * });
+   */
+  setTextures(textures: TextureSchema): this {
+    this.engine.texturesFromSchema(textures);
+    return this;
+  }
+
+  /**
+   * Remove a texture and free its GPU resources.
+   * @example
+   * sandbox.removeTexture("u_texture");
+   */
+  removeTexture(name: string): this {
+    this.engine.removeTexture(name);
+    return this;
   }
 
   /**
@@ -526,6 +568,75 @@ export class Sandbox {
    */
   get canvas(): HTMLCanvasElement {
     return this.canvasEl;
+  }
+
+  /**
+   * Export current frame as a data URL string.
+   * Requires `preserveDrawingBuffer: true` if called while playing.
+   * @example
+   * const url = sandbox.renderAt(1.5).exportAsURL("image/png");
+   */
+  exportAsURL(
+    type: "image/png" | "image/jpeg" = "image/png",
+    quality?: number,
+  ): string {
+    return this.canvas.toDataURL(type, quality);
+  }
+
+  /**
+   * Export current frame as a Blob.
+   * Requires `preserveDrawingBuffer: true` if called while playing.
+   * @example
+   * const blob = await sandbox.renderAt(1.5).exportAsBlob("image/png");
+   */
+  exportAsBlob(
+    type: "image/png" | "image/jpeg" = "image/png",
+    quality?: number,
+  ): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      this.canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error("Failed to create blob from canvas."));
+          }
+        },
+        type,
+        quality,
+      );
+    });
+  }
+
+  /**
+   * Export current frame as an HTMLImageElement.
+   * Requires `preserveDrawingBuffer: true` if called while playing.
+   * @example
+   * const img = sandbox.renderAt(1.5).exportAsImage("image/png");
+   * img.onload = () => document.body.appendChild(img);
+   */
+  exportAsImage(
+    type: "image/png" | "image/jpeg" = "image/png",
+    quality?: number,
+  ): HTMLImageElement {
+    const img = new Image();
+    img.src = this.exportAsURL(type, quality);
+    return img;
+  }
+
+  /**
+   * Capture the canvas as a MediaStream for video calls or recording.
+   * @example
+   * // WebRTC video call
+   * const stream = sandbox.stream(30);
+   * peerConnection.addTrack(stream.getVideoTracks()[0], stream);
+   *
+   * @example
+   * // Record to video file
+   * const recorder = new MediaRecorder(sandbox.stream(30));
+   */
+  stream(fps?: number): MediaStream {
+    return this.canvasEl.captureStream(fps);
   }
 
   /**

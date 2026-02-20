@@ -2,6 +2,9 @@ import type {
   AnyUniformValue,
   ClockState,
   ResolvedSandboxOptions,
+  TextureOptions,
+  TextureSchema,
+  TextureSource,
   UniformSchema,
   Vec2,
   WebGLContext,
@@ -17,6 +20,7 @@ import Clock from "./clock";
 import Geometry from "./geometry";
 import Program from "./program";
 import Uniforms from "./uniforms";
+import Textures from "./textures";
 import Hooks from "./hooks";
 import Shader from "./shader";
 import { runtime_modules as RUNTIME_MODULES } from "../globals";
@@ -36,6 +40,7 @@ export default class WebGL {
   private _program: Program;
   private _geometry: Geometry;
   private _uniforms: Uniforms;
+  private _textures: Textures;
   private _clock: Clock;
 
   private _resolution: Vec2 = [1, 1];
@@ -61,6 +66,7 @@ export default class WebGL {
     this._program = new Program(this.gl);
     this._geometry = Geometry.fullscreenQuad(this.gl);
     this._uniforms = new Uniforms(this.gl);
+    this._textures = new Textures(this.gl);
     this._clock = new Clock();
 
     // Apply max FPS if specified
@@ -97,6 +103,11 @@ export default class WebGL {
     // Set initial uniforms
     if (options.uniforms) {
       webgl._uniforms.setMany(options.uniforms);
+    }
+
+    // Set initial textures
+    if (options.textures) {
+      webgl.texturesFromSchema(options.textures);
     }
 
     // Set module default uniform values
@@ -209,6 +220,42 @@ export default class WebGL {
   }
 
   /**
+   * Set a texture.
+   */
+  texture(name: string, source: TextureSource, options?: TextureOptions): this {
+    this._textures.set(name, source, options);
+    return this;
+  }
+
+  /**
+   * Set multiple textures from a schema.
+   */
+  texturesFromSchema(schema: TextureSchema): this {
+    for (const [name, value] of Object.entries(schema)) {
+      if (value instanceof HTMLImageElement ||
+          value instanceof HTMLCanvasElement ||
+          value instanceof HTMLVideoElement ||
+          value instanceof ImageBitmap ||
+          value instanceof ImageData ||
+          value instanceof OffscreenCanvas) {
+        this._textures.set(name, value);
+      } else {
+        const { source, ...options } = value;
+        this._textures.set(name, source, options);
+      }
+    }
+    return this;
+  }
+
+  /**
+   * Remove a texture.
+   */
+  removeTexture(name: string): this {
+    this._textures.delete(name);
+    return this;
+  }
+
+  /**
    * Compile and link shaders.
    * Errors are handled via onError callback, never thrown.
    */
@@ -234,10 +281,11 @@ export default class WebGL {
       // Link attributes to geometry
       this._geometry.linkAttributes(this._program);
 
-      // Attach program to uniforms for location caching
+      // Attach program to uniforms and textures for location caching
       const webglProgram = this._program.getProgram();
       if (webglProgram) {
         this._uniforms.attachProgram(webglProgram);
+        this._textures.attachProgram(webglProgram);
       }
 
       // Call onLoad callback after successful shader setup
@@ -336,6 +384,7 @@ export default class WebGL {
     this._geometry.destroy();
     this._program.destroy();
     this._uniforms.destroy();
+    this._textures.destroy();
     this.onAfterHooks.destroy();
     this.onBeforeHooks.destroy();
     RUNTIME_MODULES.clear();
@@ -368,6 +417,9 @@ export default class WebGL {
 
     // Upload all other uniforms
     this._uniforms.uploadAll();
+
+    // Upload textures
+    this._textures.uploadAll();
 
     // Draw geometry
     this._geometry.bind();

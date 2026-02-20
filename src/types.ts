@@ -31,6 +31,8 @@ export interface SandboxOptions {
   uniforms?: UniformSchema;
   /** Configure used modules behavior */
   modules?: Record<string, Record<string, AnyUniformValue>>;
+  /** Initial textures to bind */
+  textures?: TextureSchema;
 }
 
 /** Resolved sandbox options with all defaults applied */
@@ -156,6 +158,47 @@ export type DrawMode = "TRIANGLES" | "TRIANGLE_STRIP" | "TRIANGLE_FAN";
 
 /** Render callback signature */
 export type HookCallback = (clock: ClockState) => void | false;
+
+/** Valid texture source types */
+export type TextureSource =
+  | HTMLImageElement
+  | HTMLCanvasElement
+  | HTMLVideoElement
+  | ImageBitmap
+  | ImageData
+  | OffscreenCanvas;
+
+/** Texture wrapping mode */
+export type TextureWrap = "clamp" | "repeat" | "mirror";
+
+/** Texture filter mode */
+export type TextureFilter = "nearest" | "linear";
+
+/** Per-texture configuration */
+export interface TextureOptions {
+  /** Wrapping mode for both axes (shorthand for wrapS + wrapT) */
+  wrap?: TextureWrap;
+  /** Wrapping mode for S (horizontal) axis */
+  wrapS?: TextureWrap;
+  /** Wrapping mode for T (vertical) axis */
+  wrapT?: TextureWrap;
+  /** Minification filter */
+  minFilter?: TextureFilter;
+  /** Magnification filter */
+  magFilter?: TextureFilter;
+  /** Flip texture vertically on upload (default: true) */
+  flipY?: boolean;
+  /** Re-upload pixels every frame for animated sources (default: true for video, false otherwise) */
+  dynamic?: boolean;
+}
+
+/** Resolved texture options with all defaults applied */
+export type ResolvedTextureOptions = Required<TextureOptions>;
+
+/** Schema for defining multiple textures at once */
+export interface TextureSchema {
+  [name: string]: TextureSource | ({ source: TextureSource } & TextureOptions);
+}
 
 /** GLSL uniform types */
 export type GLSLType =
