@@ -15,9 +15,9 @@ import {
   SandboxShaderWithoutFunctionError,
 } from "../errors";
 import Parser from "./parser";
+import type ModuleRegistry from "./module_registry";
 import { uniforms as UNIFORMS } from "../globals";
 import { modules as MODULES } from "../globals";
-import { runtime_modules as RUNTIME_MODULES } from "../globals";
 
 type RewriteOp = {
   index: number;
@@ -74,14 +74,14 @@ export default class Compilable {
   /**
    * Compile the shader source, resolving all imports
    */
-  compile(): string {
+  compile(runtimeModules?: ModuleRegistry): string {
     if (this.isCompiled) return this.compiled.source;
 
     const content = this.original.parse();
 
     // Process imports if any
     if (content.imports.length > 0) {
-      this.processImports();
+      this.processImports(runtimeModules);
     }
 
     // Build final shader
@@ -94,7 +94,7 @@ export default class Compilable {
   /**
    * Process all #import directives
    */
-  private processImports(): void {
+  private processImports(runtimeModules?: ModuleRegistry): void {
     const content = this.original.parse();
 
     const mentions = content.functions.flatMap((f) => {
@@ -154,7 +154,7 @@ export default class Compilable {
       this.processExtraction(extraction, imp.alias, copy.options);
 
       // Register the module in runtime modules for engine access
-      RUNTIME_MODULES.merge(imp.module, copy);
+      runtimeModules?.merge(imp.module, copy);
     }
 
     if (mentions.length > 0) {

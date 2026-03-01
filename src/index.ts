@@ -17,7 +17,6 @@ import WebGL from "./tools/web_gl";
 import Module from "./tools/module";
 import Shader from "./tools/shader";
 import { modules as MODULES } from "./globals";
-import { runtime_modules as RUNTIME_MODULES } from "./globals";
 
 export * from "./types";
 export * from "./errors";
@@ -445,7 +444,8 @@ export class Sandbox {
     name: string,
     config: T,
   ): this {
-    const options = RUNTIME_MODULES.resolveOptions(name);
+    const modules = this.engine.getUsingModules();
+    const options = modules.resolveOptions(name);
 
     if (!options) {
       console.warn(

@@ -23,7 +23,7 @@ import Uniforms from "./uniforms";
 import Textures from "./textures";
 import Hooks from "./hooks";
 import Shader from "./shader";
-import { runtime_modules as RUNTIME_MODULES } from "../globals";
+import ModuleRegistry from "./module_registry";
 
 /**
  * Main WebGL orchestrator.
@@ -46,8 +46,13 @@ export default class WebGL {
   private _resolution: Vec2 = [1, 1];
   private _mouse: Vec2 = [0, 0];
   private _version: WebGLVersion = 1;
+  private _runtimeModules = new ModuleRegistry();
 
   playing = false;
+
+  get runtimeModules(): ModuleRegistry {
+    return this._runtimeModules;
+  }
 
   private constructor(
     canvas: HTMLCanvasElement,
@@ -111,8 +116,8 @@ export default class WebGL {
     }
 
     // Set module default uniform values
-    if (!RUNTIME_MODULES.isEmpty()) {
-      webgl._uniforms.setMany(RUNTIME_MODULES.defaults());
+    if (!webgl._runtimeModules.isEmpty()) {
+      webgl._uniforms.setMany(webgl._runtimeModules.defaults());
     }
 
     return webgl;
@@ -262,7 +267,7 @@ export default class WebGL {
   shader(vertex: Shader, fragment: Shader): this {
     try {
       // Clear runtime modules before shader compilation to avoid stale modules from previous shaders
-      RUNTIME_MODULES.clear();
+      this._runtimeModules.clear();
 
       // Check version compatibility
       if (vertex.version() !== fragment.version()) {
@@ -273,7 +278,7 @@ export default class WebGL {
       }
 
       // Compile and link program
-      this._program.compile(vertex.source(), fragment.compile());
+      this._program.compile(vertex.source(), fragment.compile(this._runtimeModules));
 
       // Update version based on shaders
       this._version = fragment.version();
@@ -362,6 +367,13 @@ export default class WebGL {
   }
 
   /**
+   * Get registered runtime modules.
+   */
+  getUsingModules(): ModuleRegistry {
+    return this._runtimeModules;
+  }
+
+  /**
    * Get detected WebGL version.
    */
   getVersion(): WebGLVersion {
@@ -387,7 +399,7 @@ export default class WebGL {
     this._textures.destroy();
     this.onAfterHooks.destroy();
     this.onBeforeHooks.destroy();
-    RUNTIME_MODULES.clear();
+    this._runtimeModules.clear();
   }
 
   /**

@@ -100,12 +100,6 @@ export const modules = new ModuleRegistry([
 ]);
 
 /**
- * A global registry of modules that are currently in use by the webGL context.
- * This is flushed on every shader switch.
- */
-export const runtime_modules = new ModuleRegistry();
-
-/**
  * Global uniforms that are automatically provided by Sandbox.
  * These uniforms will NOT be renamed during preprocessing.
  */
