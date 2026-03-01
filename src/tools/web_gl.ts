@@ -50,10 +50,6 @@ export default class WebGL {
 
   playing = false;
 
-  get runtimeModules(): ModuleRegistry {
-    return this._runtimeModules;
-  }
-
   private constructor(
     canvas: HTMLCanvasElement,
     options: ResolvedSandboxOptions,
