@@ -1,9 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  modules,
-  runtime_modules,
-  uniforms,
-} from "../src/globals";
+import { modules, uniforms } from "../src/globals";
 
 // ─── Global Uniforms ────────────────────────────────────────────────────────
 
@@ -46,18 +42,3 @@ describe("Global modules registry", () => {
   });
 });
 
-// ─── Runtime Modules Registry ───────────────────────────────────────────────
-
-describe("Global runtime_modules registry", () => {
-  it("starts empty", () => {
-    // Note: other tests may populate this, but by design it should start empty
-    // We clear it to verify the pattern
-    runtime_modules.clear();
-    expect(() => runtime_modules.resolve("anything")).toThrow();
-  });
-
-  it("can be cleared", () => {
-    runtime_modules.clear();
-    expect(runtime_modules.has("anything")).toBe(false);
-  });
-});

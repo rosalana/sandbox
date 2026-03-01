@@ -1,16 +1,13 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 // Import globals first to avoid circular dependency resolution issue
-import { modules as MODULES, runtime_modules as RUNTIME_MODULES } from "../src/globals";
+import { modules as MODULES } from "../src/globals";
 import Module from "../src/tools/module";
+import ModuleRegistry from "../src/tools/module_registry";
 import Shader from "../src/tools/shader";
 
 function cleanupModule(name: string) {
   if (MODULES.has(name)) MODULES.remove(name);
 }
-
-afterEach(() => {
-  RUNTIME_MODULES.clear();
-});
 
 // ─── Basic Compilation ──────────────────────────────────────────────────────
 
@@ -157,15 +154,14 @@ describe("Compilable — import resolution", () => {
       source: `vec3 gradient(float t) { return vec3(t); }`,
     });
 
-    RUNTIME_MODULES.clear();
-
+    const registry = new ModuleRegistry();
     const shader = new Shader(`
       #import gradient from 'test_runtime_reg'
       void main() { vec3 c = gradient(0.5); gl_FragColor = vec4(c, 1.0); }
     `);
-    shader.compile();
+    shader.compile(registry);
 
-    expect(RUNTIME_MODULES.has("test_runtime_reg")).toBe(true);
+    expect(registry.has("test_runtime_reg")).toBe(true);
     cleanupModule("test_runtime_reg");
   });
 });
@@ -391,11 +387,12 @@ describe("Compilable — options rewriting during extraction", () => {
       }
     `);
 
-    shader.compile();
+    const registry = new ModuleRegistry();
+    shader.compile(registry);
 
     // After compilation, the runtime module copy should have its option's uniform
     // rewritten to the namespaced version
-    const opts = RUNTIME_MODULES.resolveOptions("glow");
+    const opts = registry.resolveOptions("glow");
     expect(opts).not.toBeNull();
     expect(opts!.intensity.uniform).toContain("glow");
     expect(opts!.intensity.uniform).toContain("u_intensity");
@@ -425,10 +422,11 @@ describe("Compilable — options rewriting during extraction", () => {
       }
     `);
 
-    shader.compile();
+    const registry = new ModuleRegistry();
+    shader.compile(registry);
 
     // Options should be accessible under the alias "glow", not "bloom"
-    const opts = RUNTIME_MODULES.resolveOptions("glow");
+    const opts = registry.resolveOptions("glow");
     expect(opts).not.toBeNull();
     expect(opts!.intensity).toBeDefined();
 

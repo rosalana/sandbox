@@ -1,16 +1,13 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
 // Import globals first to avoid circular dependency resolution issue
-import { modules as MODULES, runtime_modules as RUNTIME_MODULES } from "../src/globals";
+import { modules as MODULES } from "../src/globals";
 import Module from "../src/tools/module";
+import ModuleRegistry from "../src/tools/module_registry";
 import Shader from "../src/tools/shader";
 
 function cleanupModule(name: string) {
   if (MODULES.has(name)) MODULES.remove(name);
 }
-
-afterEach(() => {
-  RUNTIME_MODULES.clear();
-});
 
 // ─── Full Pipeline: Define → Import → Compile → Runtime ─────────────────────
 
@@ -41,7 +38,8 @@ describe("Integration — full module pipeline", () => {
       }
     `);
 
-    const compiled = shader.compile();
+    const registry = new ModuleRegistry();
+    const compiled = shader.compile(registry);
 
     // 1. Import line removed
     expect(compiled).not.toContain("#import");
@@ -58,7 +56,7 @@ describe("Integration — full module pipeline", () => {
     expect(compiled).toContain("uniform vec2 u_resolution;");
 
     // 5. Runtime options are accessible
-    const opts = RUNTIME_MODULES.resolveOptions("blur");
+    const opts = registry.resolveOptions("blur");
     expect(opts).not.toBeNull();
     expect(opts!.intensity).toBeDefined();
     expect(opts!.radius).toBeDefined();
@@ -96,16 +94,17 @@ describe("Integration — full module pipeline", () => {
       }
     `);
 
-    shader.compile();
+    const registry = new ModuleRegistry();
+    shader.compile(registry);
 
     // Options should be under alias "glow", not "bloom"
-    const glowOpts = RUNTIME_MODULES.resolveOptions("glow");
+    const glowOpts = registry.resolveOptions("glow");
     expect(glowOpts).not.toBeNull();
     expect(glowOpts!.threshold).toBeDefined();
     expect(glowOpts!.threshold.uniform).toContain("u_threshold");
 
     // Original "bloom" key should not exist
-    const bloomOpts = RUNTIME_MODULES.resolveOptions("bloom");
+    const bloomOpts = registry.resolveOptions("bloom");
     expect(bloomOpts).toBeNull();
 
     cleanupModule("int_alias_fx");
@@ -290,9 +289,10 @@ describe("Integration — built-in sandbox module", () => {
       }
     `);
 
-    shader.compile();
+    const registry = new ModuleRegistry();
+    shader.compile(registry);
 
-    const opts = RUNTIME_MODULES.resolveOptions("pixelate");
+    const opts = registry.resolveOptions("pixelate");
     expect(opts).not.toBeNull();
     expect(opts!.intensity).toBeDefined();
     expect(opts!.intensity.uniform).toContain("u_intensity");
